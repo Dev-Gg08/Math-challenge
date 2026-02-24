@@ -47,59 +47,80 @@ let unsubscribe = null;
 // ========================================================
 // TAB NAVIGATION
 // ========================================================
-// Header Tabs
-document.querySelectorAll('.nav-item').forEach(btn => {
+document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        // Deactivate all tabs
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        // Activate clicked
         btn.classList.add('active');
-        const target = document.getElementById('tab-' + btn.dataset.tab);
-        if (target) target.classList.add('active');
-
-        // Auto-scroll to top if switching tabs
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById(btn.dataset.tab).classList.add('active');
     });
 });
 
 // ========================================================
 // THEME SYSTEM
 // ========================================================
-const themedColors = {
-    blue: { primary: '#007AFF', accent: '#0056FF' },
-    pink: { primary: '#ff2d85', accent: '#ff0055' },
-    green: { primary: '#34c759', accent: '#28cd41' },
-    midnight: { primary: '#3a3a3c', accent: '#1c1c1e' }
-};
+const savedTheme = localStorage.getItem('mathquiz-theme') || 'snow';
+if (savedTheme !== 'snow') document.documentElement.setAttribute('data-theme', savedTheme);
+// Mark saved theme as active
+document.querySelectorAll('.theme-card').forEach(card => {
+    if (card.dataset.theme === savedTheme) card.classList.add('active');
+    else card.classList.remove('active');
+});
 
-const savedTheme = localStorage.getItem('mathquiz-theme') || 'blue';
-if (savedTheme !== 'blue') document.documentElement.setAttribute('data-theme', savedTheme);
+// Particles Effect Logic
+function initParticles(theme) {
+    const container = document.getElementById('particles-container');
+    if (!container) return;
+    container.innerHTML = '';
 
-// Mark saved theme as active and update code window
-document.querySelectorAll('.theme-btn').forEach(btn => {
-    const theme = btn.dataset.theme;
-    if (theme === savedTheme) {
-        btn.classList.add('active');
-        if (themedColors[theme]) {
-            const pVal = document.getElementById('code-primary-val');
-            const aVal = document.getElementById('code-accent-val');
-            if (pVal) pVal.textContent = themedColors[theme].primary;
-            if (aVal) aVal.textContent = themedColors[theme].accent;
+    if (theme === 'purple') return;
+
+    const count = theme === 'snow' ? 50 : 80;
+    const type = theme === 'snow' ? 'snow-flake' : 'rain-drop';
+
+    for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle ' + type;
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        p.style.animationDelay = Math.random() * 5 + 's';
+        p.style.opacity = Math.random();
+        if (theme === 'snow') {
+            const size = (Math.random() * 5 + 2) + 'px';
+            p.style.width = size;
+            p.style.height = size;
         }
-    } else btn.classList.remove('active');
+        container.appendChild(p);
+    }
+}
 
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.body.setAttribute('data-theme', theme);
+initParticles(savedTheme);
+
+document.querySelectorAll('.theme-card').forEach(card => {
+    card.addEventListener('click', () => {
+        const theme = card.dataset.theme;
+        document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        if (theme === 'snow' || theme === 'purple') {
+            document.documentElement.setAttribute('data-theme', theme);
+            if (theme === 'snow') document.documentElement.setAttribute('data-theme', 'snow');
+            else if (theme === 'purple') document.documentElement.setAttribute('data-theme', 'purple');
+        } else {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+
+        if (theme === 'snow') {
+            document.documentElement.setAttribute('data-theme', 'snow');
+        } else if (theme === 'purple') {
+            document.documentElement.setAttribute('data-theme', 'purple');
+        }
+
+        // Simplified theme application
+        document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('mathquiz-theme', theme);
-
-        // Update code window values
-        if (themedColors[theme]) {
-            const pVal = document.getElementById('code-primary-val');
-            const aVal = document.getElementById('code-accent-val');
-            if (pVal) pVal.textContent = themedColors[theme].primary;
-            if (aVal) aVal.textContent = themedColors[theme].accent;
-        }
+        initParticles(theme);
     });
 });
 
@@ -266,22 +287,16 @@ function showHostQuestion(data) {
 
     const optsArea = document.getElementById('host-options-display');
     optsArea.innerHTML = '';
-    const shapes = ['triangle', 'square', 'circle', 'square'];
-
     q.opts.forEach((opt, i) => {
         const btn = document.createElement('div');
         btn.className = 'host-opt-big ' + COLORS[i];
-        btn.innerHTML = `
-            <span class="opt-shape"><i data-lucide="${shapes[i]}"></i></span>
-            <span class="opt-text">${opt}</span>
-        `;
+        btn.innerHTML = '<span class="opt-shape">' + SHAPES[i] + '</span><span class="opt-text">' + opt + '</span>';
         optsArea.appendChild(btn);
     });
     document.getElementById('host-answers').textContent = data.answersCount || 0;
     document.getElementById('host-total-players').textContent = Object.keys(data.players || {}).length;
     showScreen('host-wait');
     startCountdown('host-timer-text', 'host-timer-ring');
-    lucide.createIcons();
 }
 
 // ========================================================
@@ -297,21 +312,15 @@ function showPlayerQuestion(data) {
 
     const grid = document.getElementById('options-grid');
     grid.innerHTML = '';
-    const shapes = ['triangle', 'square', 'circle', 'square'];
-
     q.opts.forEach((opt, i) => {
         const btn = document.createElement('button');
         btn.className = 'opt-btn ' + COLORS[i];
-        btn.innerHTML = `
-            <div class="opt-shape"><i data-lucide="${shapes[i]}"></i></div>
-            <div class="opt-text">${opt}</div>
-        `;
+        btn.innerHTML = '<span class="opt-shape">' + SHAPES[i] + '</span><span class="opt-text">' + opt + '</span>';
         btn.addEventListener('click', () => submitAnswer(i));
         grid.appendChild(btn);
     });
     showScreen('question');
     startCountdown('timer-text', 'timer-ring');
-    lucide.createIcons();
 }
 
 // ========================================================
@@ -426,8 +435,7 @@ document.getElementById('btn-next-q').addEventListener('click', async () => {
 function renderGameOver(players) {
     clearInterval(timerInterval);
     const sorted = Object.values(players || {}).sort((a, b) => b.score - a.score);
-    const podium = document.getElementById('podium-area');
-    if (!podium) return;
+    const podium = document.getElementById('podium');
     podium.innerHTML = '';
 
     const order = [];
@@ -437,34 +445,15 @@ function renderGameOver(players) {
 
     const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
     order.forEach(p => {
-        if (!p.name) return;
+        if (!p.name) return; // Skip if no data
         const col = document.createElement('div');
         col.className = 'podium-col podium-' + p.rank;
-        col.innerHTML = `
-            <div class="podium-medal">${medals[p.rank]}</div>
-            <div class="podium-name">${p.name}</div>
-            <div class="podium-score">${(p.score || 0).toLocaleString()}</div>
-        `;
+        col.innerHTML = '<div class="podium-medal">' + medals[p.rank] + '</div><div class="podium-name">' + p.name + '</div><div class="podium-score">' + (p.score || 0).toLocaleString() + '</div>';
         podium.appendChild(col);
     });
 
-    // Update Deadline State
-    const pc = Object.keys(players || {}).length;
-    const avgScore = sorted.reduce((sum, p) => sum + (p.score || 0), 0) / (pc || 1);
-    const progress = Math.min((avgScore / (1500 * QUESTIONS.length)) * 100, 100);
-
-    const progEl = document.getElementById('deadline-progress');
-    const textEl = document.getElementById('deadline-text');
-    if (progEl) {
-        progEl.style.width = progress + '%';
-        document.documentElement.style.setProperty('--progress', progress + '%');
-    }
-    if (textEl) {
-        const days = Math.max(7 - Math.floor(progress / 14), 1);
-        textEl.textContent = `Deadline ${days} days`;
-    }
-
-    showScreen('game-over');
+    spawnConfetti();
+    showScreen('gameover');
 }
 
 function spawnConfetti() {
