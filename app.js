@@ -361,7 +361,7 @@ async function submitStageAnswer(idx) {
     const roomSnap = await db.ref('rooms/' + roomId).once('value');
     const roomData = roomSnap.val();
     const q = roomData.questions[currentQIndex];
-    const correct = (idx === q.ans);
+    const correct = (Number(idx) === Number(q.ans));
     if (!correct) {
         isEliminated = true;
         await db.ref('rooms/' + roomId + '/players/' + playerId).update({ isEliminated: true });
@@ -490,7 +490,8 @@ function startCountdown(textId, ringId) {
 
 async function submitAnswer(idx) {
     if (hasAnswered || role !== 'player') return; hasAnswered = true;
-    const q = roomQuestions[currentQIndex]; const correct = (idx === q.ans);
+    const q = roomQuestions[currentQIndex];
+    const correct = (Number(idx) === Number(q.ans));
     let pts = correct ? 1000 + Math.floor((timeLeft / 30) * 500) : 0;
     totalScore += pts;
     await db.ref('rooms/' + roomId + '/players/' + playerId).update({ score: totalScore, answered: true });
@@ -504,19 +505,24 @@ function showPlayerResult(correct, pts, correctAnsText = '') {
     if (correct) {
         box.innerHTML = `
             <div class="result-emoji">✅</div>
-            <div class="result-title" style="color:#5efc5e;">Correct!</div>
-            <div class="result-points">+${pts} pts</div>
+            <div class="result-title" style="color:#5efc5e;">ถูกต้อง!</div>
+            <div class="result-points">+${pts.toLocaleString()} คะแนน</div>
         `;
     } else {
         box.innerHTML = `
             <div class="result-emoji">❌</div>
-            <div class="result-title" style="color:#ff6b6b;">Incorrect</div>
-            <div class="result-correct-info" style="margin-top:10px; font-size:1.2rem;">
-                คำตอบที่ถูกต้องคือ: <span style="font-weight:900; color:var(--accent);">${correctAnsText}</span>
+            <div class="result-title" style="color:#ff6b6b;">ยังไม่ถูกนะ</div>
+            <div class="result-correct-card">
+                <div class="correct-label">คำตอบที่ถูกต้องคือ</div>
+                <div class="correct-ans-text">${correctAnsText}</div>
             </div>
         `;
     }
-    box.innerHTML += '<div class="result-total" style="margin-top:20px;">Total: ' + totalScore.toLocaleString() + '</div>';
+    box.innerHTML += `
+        <div class="result-total" style="margin-top:30px; opacity:0.6;">
+            คะแนนสะสม: ${totalScore.toLocaleString()}
+        </div>
+    `;
     showScreen('result');
 }
 
