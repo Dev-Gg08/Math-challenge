@@ -1516,6 +1516,19 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 15px;
+    animation: playerReveal 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes playerReveal {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 .player-on-stage .avatar-big {
