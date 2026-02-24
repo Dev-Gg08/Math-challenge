@@ -28,18 +28,20 @@ function generateBasicQ() {
         const seq = [a1, a1 + d, a1 + d * 2, a1 + d * 3];
         const ans = d;
         const opts = [ans, ans + 1, Math.abs(ans - 1), ans + 2].sort(() => Math.random() - 0.5);
+        const ansIdx = opts.indexOf(ans);
         return {
             q: `ลำดับเลขคณิต ${seq.join(', ')}, ... มีค่า d เท่าใด?`,
-            opts: opts.map(String), ans: opts.indexOf(String(ans)), formula: "d = a₂ - a₁"
+            opts: opts.map(String), ans: ansIdx, formula: "d = a₂ - a₁"
         };
     } else {
         const n = Math.floor(Math.random() * 2) + 1; // Term 1 or 2
         const ans = a1 + (n - 1) * d;
         const seqText = n === 1 ? `?, ${a1 + d}, ${a1 + d * 2}` : `${a1}, ?, ${a1 + d * 2}`;
         const opts = [ans, ans + d, Math.abs(ans - d), ans + 1].sort(() => Math.random() - 0.5);
+        const ansIdx = opts.indexOf(ans);
         return {
             q: `จงหาพจน์ที่ ${n} ของลำดับเลขคณิต: ${seqText}, ...`,
-            opts: opts.map(String), ans: opts.indexOf(String(ans)), formula: "aₙ = a₁ + (n-1)d"
+            opts: opts.map(String), ans: ansIdx, formula: "aₙ = a₁ + (n-1)d"
         };
     }
 }
@@ -364,7 +366,7 @@ async function submitStageAnswer(idx) {
         isEliminated = true;
         await db.ref('rooms/' + roomId + '/players/' + playerId).update({ isEliminated: true });
     }
-    showPlayerResult(correct, correct ? 1000 : 0);
+    showPlayerResult(correct, correct ? 1000 : 0, q.opts[q.ans]);
     await db.ref('rooms/' + roomId).update({ turnDone: Date.now() });
 }
 
@@ -493,16 +495,28 @@ async function submitAnswer(idx) {
     totalScore += pts;
     await db.ref('rooms/' + roomId + '/players/' + playerId).update({ score: totalScore, answered: true });
     await db.ref('rooms/' + roomId + '/answersCount').transaction(c => (c || 0) + 1);
-    showPlayerResult(correct, pts);
+    showPlayerResult(correct, pts, q.opts[q.ans]);
 }
 
-function showPlayerResult(correct, pts) {
+function showPlayerResult(correct, pts, correctAnsText = '') {
     clearInterval(timerInterval);
     const box = document.getElementById('result-box');
-    box.innerHTML = correct
-        ? '<div class="result-emoji">✅</div><div class="result-title" style="color:#5efc5e;">Correct!</div><div class="result-points">+' + pts + ' pts</div>'
-        : '<div class="result-emoji">❌</div><div class="result-title" style="color:#ff6b6b;">Incorrect</div>';
-    box.innerHTML += '<div class="result-total">Total: ' + totalScore.toLocaleString() + '</div>';
+    if (correct) {
+        box.innerHTML = `
+            <div class="result-emoji">✅</div>
+            <div class="result-title" style="color:#5efc5e;">Correct!</div>
+            <div class="result-points">+${pts} pts</div>
+        `;
+    } else {
+        box.innerHTML = `
+            <div class="result-emoji">❌</div>
+            <div class="result-title" style="color:#ff6b6b;">Incorrect</div>
+            <div class="result-correct-info" style="margin-top:10px; font-size:1.2rem;">
+                คำตอบที่ถูกต้องคือ: <span style="font-weight:900; color:var(--accent);">${correctAnsText}</span>
+            </div>
+        `;
+    }
+    box.innerHTML += '<div class="result-total" style="margin-top:20px;">Total: ' + totalScore.toLocaleString() + '</div>';
     showScreen('result');
 }
 
