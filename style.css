@@ -1630,6 +1630,11 @@ body {
     text-decoration: line-through;
 }
 
+.watch-audience {
+    margin-bottom: 80px;
+    /* Space for fixed spectator-ui */
+}
+
 /* Global Spectator UI */
 .spectator-ui {
     position: fixed;
@@ -1642,9 +1647,10 @@ body {
 }
 
 .spectator-ui .shoutout-input-area {
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
 }
 
 .watch-overlay {
