@@ -1609,6 +1609,74 @@ body {
     color: var(--accent);
 }
 
+/* Shoutout Display Area */
+.shoutout-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    overflow: hidden;
+}
+
+.shoutout-bubble {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px 20px;
+    border-radius: 20px;
+    color: white;
+    font-weight: 600;
+    white-space: nowrap;
+    animation: shoutoutFloat 4s linear forwards;
+}
+
+@keyframes shoutoutFloat {
+    0% {
+        transform: translateY(100vh) scale(0.8);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+        transform: translateY(85vh) scale(1);
+    }
+
+    90% {
+        opacity: 1;
+        transform: translateY(15vh) scale(1);
+    }
+
+    100% {
+        transform: translateY(0) scale(0.8);
+        opacity: 0;
+    }
+}
+
+/* Shoutout Input */
+.shoutout-input-area {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    width: 90%;
+    max-width: 400px;
+}
+
+.shoutout-input-area input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 8px;
+    outline: none;
+}
+
+.shoutout-input-area button {
+    padding: 8px 20px;
+}
+
 @media (max-width: 600px) {
     .cust-grid {
         grid-template-columns: repeat(4, 1fr);

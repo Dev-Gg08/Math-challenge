@@ -18,21 +18,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 // --- Questions ---
-const QUESTIONS = [
-    { q: "ลำดับเลขคณิต 2, 5, 8, 11, ... มีค่าผลต่างร่วม (d) เท่าใด?", opts: ["2", "3", "4", "5"], ans: 1, formula: "d = a₂ - a₁" },
-    { q: "พจน์ที่ 10 ของลำดับ 3, 7, 11, ... คืออะไร?", opts: ["35", "39", "43", "47"], ans: 1, formula: "aₙ = a₁ + (n−1)d" },
-    { q: "ลำดับ 10, 7, 4, ... พจน์ถัดไปคืออะไร?", opts: ["1", "0", "−1", "−2"], ans: 0, formula: "aₙ = a₁ + (n−1)d" },
-    { q: "ผลต่างร่วมของลำดับ 1, −2, −5, ... คืออะไร?", opts: ["−2", "−3", "2", "3"], ans: 1, formula: "d = a₂ − a₁" },
-    { q: "ลำดับ 5, 13, 21, ... เลข 101 เป็นพจน์ที่เท่าใด?", opts: ["11", "12", "13", "14"], ans: 2, formula: "n = [(aₙ − a₁) / d] + 1" },
-    { q: "ผลบวก 10 พจน์แรกของอนุกรม 1+2+3+...+10 คือ?", opts: ["45", "50", "55", "60"], ans: 2, formula: "Sₙ = n/2 (a₁ + aₙ)" },
-    { q: "กำหนด a₁=5, d=4 จงหาผลบวก 5 พจน์แรก (S₅)", opts: ["55", "60", "65", "70"], ans: 2, formula: "Sₙ = n/2 [2a₁ + (n−1)d]" },
-    { q: "ลำดับ 2, 4, 6, ..., 20 มีทั้งหมดกี่พจน์?", opts: ["8", "9", "10", "11"], ans: 2, formula: "n = (aₙ − a₁)/d + 1" },
-    { q: "ผลบวก 5 พจน์แรกของลำดับ 5, 10, 15, ... คือ?", opts: ["65", "70", "75", "80"], ans: 2, formula: "Sₙ = n/2 (a₁ + aₙ)" },
-    { q: "กำหนด a₁=100, d=−10 จงหาพจน์ที่ 5 (a₅)", opts: ["50", "60", "70", "80"], ans: 1, formula: "a₅ = a₁ + 4d" },
-    { q: "ลำดับเรขาคณิต 3, 6, 12, ... มีอัตราส่วนร่วม (r) เท่าใด?", opts: ["1.5", "2", "3", "4"], ans: 1, formula: "r = a₂ / a₁" },
-    { q: "พจน์ที่ 4 ของลำดับเรขาคณิต 5, 10, 20, ... คืออะไร?", opts: ["30", "40", "50", "60"], ans: 1, formula: "a₄ = a₁ · r³" },
-    { q: "พจน์แรก (a₁) ของลำดับเรขาคณิตที่มี r=3 และ a₂=12 คืออะไร?", opts: ["2", "3", "4", "6"], ans: 2, formula: "a₁ = a₂ / r" }
-];
 
 function generateBasicQ() {
     const type = Math.floor(Math.random() * 3); // 0: find d, 1: find an, 2: find Sum
@@ -70,6 +55,7 @@ function generateBasicQ() {
     }
 }
 
+const QUESTIONS = Array.from({ length: 10 }, generateBasicQ);
 let eliminationQuestions = Array.from({ length: 20 }, generateBasicQ);
 
 const SHAPES = ["▲", "◆", "●", "■"];
@@ -252,7 +238,20 @@ function listenRoom() {
                 break;
         }
     });
-    unsubscribe = () => roomRef.off('value', handler);
+
+    // Shoutout Listener
+    const shoutRef = db.ref('rooms/' + roomId + '/shoutouts');
+    shoutRef.limitToLast(1).on('child_added', snap => {
+        const msg = snap.val();
+        if (msg && Date.now() - msg.timestamp < 5000) {
+            renderShoutout(msg.text);
+        }
+    });
+
+    unsubscribe = () => {
+        roomRef.off('value', handler);
+        shoutRef.off();
+    };
 }
 
 function handleStageState(data) {
@@ -321,6 +320,27 @@ function renderAudience(players) {
         chip.textContent = p.name;
         list.appendChild(chip);
     });
+}
+
+async function sendShoutout() {
+    const input = document.getElementById('shoutout-msg');
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+    await db.ref('rooms/' + roomId + '/shoutouts').push({
+        text: msg, timestamp: Date.now()
+    });
+}
+
+function renderShoutout(text) {
+    const container = document.getElementById('stage-shoutouts');
+    if (!container) return;
+    const bubble = document.createElement('div');
+    bubble.className = 'shoutout-bubble';
+    bubble.textContent = text;
+    bubble.style.left = (Math.random() * 60 + 20) + '%';
+    container.appendChild(bubble);
+    setTimeout(() => bubble.remove(), 4000);
 }
 
 function startStageTimer(duration, displayOnly = false) {
@@ -539,4 +559,10 @@ function spawnConfetti() {
         area.appendChild(c);
     }
 }
+
+document.getElementById('btn-shoutout')?.addEventListener('click', sendShoutout);
+document.getElementById('shoutout-msg')?.addEventListener('keypress', e => {
+    if (e.key === 'Enter') sendShoutout();
+});
+
 console.log('✅ Math Quiz Challenge loaded!');
