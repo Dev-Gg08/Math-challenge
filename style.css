@@ -59,11 +59,13 @@
 
 html,
 body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    /* Lock global scrolling */
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    position: fixed;
+    /* Absolute lock */
+    width: 100%;
 }
 
 body {
@@ -79,10 +81,10 @@ body {
     width: 100%;
     max-width: 900px;
     margin: 0 auto;
-    height: 100%;
+    height: 100% !important;
     position: relative;
-    overflow-y: auto;
-    /* Allow scrolling only inside #app if content overflows */
+    overflow: hidden !important;
+    /* No scrolling in the main app container */
 }
 
 /* ================== SCREENS ================== */
@@ -113,16 +115,23 @@ body {
 }
 
 .screen-full {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100vw !important;
+    height: 100dvh !important;
+    z-index: 9999;
     padding: 0 !important;
-    height: 100%;
-    height: 100dvh;
+    margin: 0 !important;
     overflow: hidden !important;
     justify-content: center;
+    background: var(--bg-end);
+    /* Ensure no transparency issues */
 }
 
 @supports not (height: 100dvh) {
     .screen-full {
-        height: 100vh;
+        height: 100vh !important;
     }
 }
 
@@ -1289,6 +1298,9 @@ body {
 .lb-list {
     width: 100%;
     max-width: 700px;
+    max-height: 60dvh;
+    overflow-y: auto;
+    padding-right: 5px;
     display: flex;
     flex-direction: column;
     gap: 8px;
