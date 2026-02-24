@@ -105,50 +105,28 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // ========================================================
-// THEME SYSTEM
+// PARTICLES (SNOW)
 // ========================================================
-const savedTheme = localStorage.getItem('mathquiz-theme') || 'snow';
-if (savedTheme !== 'snow') document.documentElement.setAttribute('data-theme', savedTheme);
-document.querySelectorAll('.theme-card').forEach(card => {
-    if (card.dataset.theme === savedTheme) card.classList.add('active');
-    else card.classList.remove('active');
-});
-
-function initParticles(theme) {
+function initParticles() {
     const container = document.getElementById('particles-container');
     if (!container) return;
     container.innerHTML = '';
-    if (theme === 'purple') return;
 
-    const count = theme === 'snow' ? 50 : 80;
-    const type = theme === 'snow' ? 'snow-flake' : 'rain-drop';
-
+    const count = 50;
     for (let i = 0; i < count; i++) {
         const p = document.createElement('div');
-        p.className = 'particle ' + type;
+        p.className = 'particle snow-flake';
         p.style.left = Math.random() * 100 + 'vw';
         p.style.animationDuration = (Math.random() * 3 + 2) + 's';
         p.style.animationDelay = Math.random() * 5 + 's';
         p.style.opacity = Math.random();
-        if (theme === 'snow') {
-            const size = (Math.random() * 5 + 2) + 'px';
-            p.style.width = size; p.style.height = size;
-        }
+
+        const size = (Math.random() * 5 + 2) + 'px';
+        p.style.width = size; p.style.height = size;
         container.appendChild(p);
     }
 }
-initParticles(savedTheme);
-
-document.querySelectorAll('.theme-card').forEach(card => {
-    card.addEventListener('click', () => {
-        const theme = card.dataset.theme;
-        document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('mathquiz-theme', theme);
-        initParticles(theme);
-    });
-});
+initParticles();
 
 window.addEventListener('load', () => {
     const params = new URLSearchParams(window.location.search);
@@ -162,6 +140,7 @@ window.addEventListener('load', () => {
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + id).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // Toggle Spectator UI
     const spectatorUI = document.getElementById('spectator-ui');

@@ -8,47 +8,24 @@
 /* ================== THEME SYSTEM ================== */
 /* Default: Snow Theme */
 :root {
-    --primary: #8ecae6;
-    --primary-dark: #219ebc;
-    --bg-end: #023047;
+    --primary: #468faf;
+    --primary-dark: #01497c;
+    --bg-end: #012a4a;
     --accent: #ffb703;
     --accent-glow: rgba(255, 183, 3, 0.4);
     --green: #2a9d8f;
     --blue: #264653;
     --yellow: #e9c46a;
-    --glass: rgba(255, 255, 255, 0.12);
-    --glass-border: rgba(255, 255, 255, 0.2);
-    --glass-hover: rgba(255, 255, 255, 0.25);
+    --glass: rgba(0, 0, 0, 0.45);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-hover: rgba(0, 0, 0, 0.55);
     --text: #fff;
-    --text-dim: rgba(255, 255, 255, 0.7);
+    --text-dim: rgba(255, 255, 255, 0.85);
     --radius: 18px;
     --radius-sm: 12px;
 }
 
-/* Theme Variants */
-[data-theme="snow"] {
-    --primary: #8ecae6;
-    --primary-dark: #219ebc;
-    --bg-end: #023047;
-    --accent: #ffb703;
-    --accent-glow: rgba(255, 183, 3, 0.4);
-}
 
-[data-theme="rain"] {
-    --primary: #457b9d;
-    --primary-dark: #1d3557;
-    --bg-end: #0b132b;
-    --accent: #a8dadc;
-    --accent-glow: rgba(168, 218, 220, 0.4);
-}
-
-[data-theme="purple"] {
-    --primary: #46178f;
-    --primary-dark: #1e0a3c;
-    --bg-end: #0a0416;
-    --accent: #e21b3c;
-    --accent-glow: rgba(226, 27, 60, 0.4);
-}
 
 /* ================== RESET ================== */
 * {
@@ -59,12 +36,9 @@
 
 html,
 body {
-    height: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    position: fixed;
-    /* Absolute lock */
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
     width: 100%;
 }
 
@@ -81,10 +55,9 @@ body {
     width: 100%;
     max-width: 900px;
     margin: 0 auto;
-    height: 100% !important;
+    min-height: 100vh;
     position: relative;
-    overflow: hidden !important;
-    /* No scrolling in the main app container */
+    /* Main container is now naturally scrollable via body */
 }
 
 /* ================== SCREENS ================== */
@@ -92,10 +65,12 @@ body {
     display: none;
     flex-direction: column;
     align-items: center;
-    height: 100%;
+    min-height: 100vh;
     width: 100%;
-    padding: 20px 16px 40px;
-    animation: screenIn 0.35s ease-out;
+    padding: 20px 16px env(safe-area-inset-bottom, 150px);
+    padding-bottom: 200px;
+    /* More scroll depth */
+    animation: screenIn 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .screen.active {
@@ -233,23 +208,6 @@ body {
     }
 }
 
-/* Rain Effect */
-.rain-drop {
-    width: 2px;
-    height: 15px;
-    background: rgba(255, 255, 255, 0.4);
-    animation: rainFall linear infinite;
-}
-
-@keyframes rainFall {
-    0% {
-        transform: translateY(-10vh);
-    }
-
-    100% {
-        transform: translateY(110vh);
-    }
-}
 
 /* ================== GLASS CARD ================== */
 .glass-card {
@@ -298,9 +256,12 @@ body {
     padding: 6px;
     background: rgba(0, 0, 0, 0.25);
     border-radius: 16px;
-    margin-bottom: 20px;
-    position: relative;
-    z-index: 2;
+    margin-bottom: 25px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .tab-btn {
@@ -400,9 +361,10 @@ body {
 }
 
 .hero-sub {
-    font-size: 0.95rem;
-    color: var(--text-dim);
-    margin-top: 8px;
+    font-size: 1rem;
+    color: var(--text);
+    margin-top: 10px;
+    font-weight: 500;
 }
 
 .join-card {
@@ -426,7 +388,7 @@ body {
     padding: 14px 16px;
     border-radius: var(--radius-sm);
     border: 2px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.3);
     color: white;
     font-family: inherit;
     font-size: 1.05rem;
@@ -561,51 +523,7 @@ body {
     font-size: 1.2rem;
 }
 
-/* ================== TAB: THEME ================== */
-.theme-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    width: 100%;
-    max-width: 420px;
-}
 
-.theme-card {
-    border: 2px solid transparent;
-    border-radius: var(--radius);
-    background: var(--glass);
-    padding: 12px;
-    cursor: pointer;
-    transition: all 0.25s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    font-family: inherit;
-    color: var(--text);
-}
-
-.theme-card:hover {
-    border-color: rgba(255, 255, 255, 0.25);
-    transform: translateY(-3px);
-}
-
-.theme-card.active {
-    border-color: var(--accent);
-    box-shadow: 0 0 20px var(--accent-glow);
-}
-
-.theme-preview {
-    width: 100%;
-    height: 60px;
-    border-radius: var(--radius-sm);
-    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
-}
-
-.theme-name {
-    font-size: 0.85rem;
-    font-weight: 600;
-}
 
 /* ================== TAB: LEARN ================== */
 .learn-card {
@@ -1500,13 +1418,36 @@ body {
         font-size: 1.3rem;
     }
 
-    .theme-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
+
 
     .section-heading {
         font-size: 1.6rem;
+    }
+
+    .glass-card {
+        background: rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(30px);
+        -webkit-backdrop-filter: blur(30px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
+
+    .hero-title {
+        font-size: 2.8rem;
+        text-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    }
+
+    .tab-btn .tab-label {
+        font-size: 0.65rem;
+    }
+
+    .join-card {
+        padding: 24px 18px;
+    }
+
+    .tab-nav {
+        margin-bottom: 25px;
+        padding: 4px;
+        gap: 4px;
     }
 }
 
