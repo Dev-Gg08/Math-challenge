@@ -22,60 +22,59 @@ const db = firebase.database();
 function generateBasicQ(level = 1) {
     // Scaling Factors based on level (1-13)
     const factor = Math.min(level, 13);
-    const a1Range = 10 + factor * 2;
-    const dRange = 5 + factor;
+    // Baseline difficulty improved: a1 starts up to 20, d starts up to 10
+    const a1Range = 20 + factor * 5;
+    const dRange = 10 + factor * 2;
 
-    const a1 = Math.floor(Math.random() * a1Range) + 1;
-    const d = Math.floor(Math.random() * dRange) + 1;
+    const a1 = Math.floor(Math.random() * a1Range) + 5; // Min 5
+    const d = Math.floor(Math.random() * dRange) + 2;  // Min 2
 
-    // Difficulty tiers based on level
-    let type;
-    if (level <= 4) {
-        type = Math.floor(Math.random() * 2); // 0 or 1
-    } else if (level <= 8) {
-        type = Math.floor(Math.random() * 3); // 0, 1, or 2
-    } else {
-        type = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
-    }
+    // Alternate Type: Odd levels = Sequence, Even levels = Series
+    const isSeries = (level % 2 === 0);
 
-    if (type === 0) { // Find d
-        const seq = [a1, a1 + d, a1 + d * 2, a1 + d * 3];
-        const opts = [d, d + 1, Math.abs(d - 1), d + 2].sort(() => Math.random() - 0.5);
-        return {
-            q: `ลำดับเลขคณิต ${seq.join(', ')}, ... มีค่า d เท่าใด?`,
-            opts: opts.map(String), ans: opts.indexOf(d), formula: "d = a₂ - a₁"
-        };
-    } else if (type === 1 || type === 2) { // Find specific term
-        // level 1-4: n is 1 or 2
-        // level 5-8: n is up to 5
-        // level 9+: n is up to 10
-        let n;
-        if (level <= 4) n = Math.floor(Math.random() * 2) + 1;
-        else if (level <= 8) n = Math.floor(Math.random() * 5) + 1;
-        else n = Math.floor(Math.random() * 6) + 1;
+    if (!isSeries) {
+        // Sequence Mode (Find d or find specific term)
+        const findD = (Math.random() < 0.3 && level < 10); // Find d is easier, less frequent at high levels
 
-        const ans = a1 + (n - 1) * d;
-        let seqText;
-        if (n <= 3) {
-            const arr = [a1, a1 + d, a1 + d * 2];
-            arr[n - 1] = '?';
-            seqText = arr.join(', ');
+        if (findD) {
+            const seq = [a1, a1 + d, a1 + d * 2, a1 + d * 3];
+            const opts = [d, d + 1, Math.abs(d - 1), d + 5].sort(() => Math.random() - 0.5);
+            return {
+                q: `ลำดับเลขคณิต ${seq.join(', ')}, ... มีค่า d เท่าใด?`,
+                opts: opts.map(String), ans: opts.indexOf(d), formula: "d = a₂ - a₁"
+            };
         } else {
-            seqText = `${a1}, ${a1 + d}, ${a1 + d * 2}`;
-        }
+            // Find specific term n
+            // Base: 1-2, Hard: up to 6
+            const nRange = level <= 4 ? 2 : 6;
+            const n = Math.floor(Math.random() * nRange) + 1;
+            const ans = a1 + (n - 1) * d;
 
-        const opts = [ans, ans + d, Math.abs(ans - d), ans + 1].sort(() => Math.random() - 0.5);
-        return {
-            q: `จงหาพจน์ที่ ${n} ของลำดับเลขคณิต: ${seqText}, ...`,
-            opts: opts.map(String), ans: opts.indexOf(ans), formula: "aₙ = a₁ + (n-1)d"
-        };
-    } else { // Find Sum (Only Level 5+)
-        const n = 5;
+            let seqText;
+            if (n <= 3) {
+                const arr = [a1, a1 + d, a1 + d * 2];
+                arr[n - 1] = '?';
+                seqText = arr.join(', ');
+            } else {
+                seqText = `${a1}, ${a1 + d}, ${a1 + d * 2}`;
+            }
+
+            const opts = [ans, ans + d, ans - d, ans + 1].sort(() => Math.random() - 0.5);
+            return {
+                q: `จงหาพจน์ที่ ${n} ของลำดับเลขคณิต: ${seqText}, ...`,
+                opts: opts.map(String), ans: opts.indexOf(ans), formula: "aₙ = a₁ + (n-1)d"
+            };
+        }
+    } else {
+        // Series Mode (Sum Sn)
+        // Level increases n for sum
+        const n = level <= 6 ? 3 : 5;
         const an = a1 + (n - 1) * d;
         const ans = (n / 2) * (a1 + an);
-        const opts = [ans, ans + d, ans - d, ans + 5].sort(() => Math.random() - 0.5);
+
+        const opts = [ans, ans + d, ans - d, ans + 10].sort(() => Math.random() - 0.5);
         return {
-            q: `ผลบวก 5 พจน์แรกของอนุกรม ${a1} + ${a1 + d} + ${a1 + d * 2} + ... คือ?`,
+            q: `ผลบวก ${n} พจน์แรกของอนุกรม ${a1} + ${a1 + d} + ${a1 + d * 2} + ... คือเท่าใด?`,
             opts: opts.map(String), ans: opts.indexOf(ans), formula: "Sₙ = n/2 (a₁ + aₙ)"
         };
     }

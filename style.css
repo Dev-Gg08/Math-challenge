@@ -100,6 +100,10 @@ body {
     }
 }
 
+.screen-full {
+    padding: 0 !important;
+}
+
 .host-screen-fullpage {
     padding: 0 !important;
     max-width: 100% !important;
