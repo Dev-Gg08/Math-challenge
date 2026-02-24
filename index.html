@@ -341,6 +341,7 @@
 
             <!-- Bottom: BIG answer buttons (2x2 grid like Kahoot) -->
             <div class="host-options-grid" id="host-options-display"></div>
+            <div class="shoutout-container" id="host-shoutouts"></div>
         </section>
 
         <!-- ==================== PLAYER RESULT ==================== -->
@@ -406,13 +407,17 @@
             <div class="watch-audience">
                 <p>คุณเป็นคนดู (ในคิว)</p>
             </div>
-            <div class="shoutout-input-area glass-card">
-                <input type="text" id="shoutout-msg" placeholder="ส่งแรงเชียร์..." maxlength="30">
-                <button id="btn-shoutout" class="btn btn-accent btn-sm">ส่ง!</button>
-            </div>
         </div>
     </section>
 
+    </div>
+
+    <!-- Global Spectator Feedback Area -->
+    <div id="spectator-ui" class="spectator-ui hidden">
+        <div class="shoutout-input-area glass-card">
+            <input type="text" id="shoutout-msg" placeholder="ส่งแรงเชียร์..." maxlength="30">
+            <button id="btn-shoutout" class="btn btn-accent btn-sm">ส่ง!</button>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>

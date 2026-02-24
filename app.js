@@ -19,29 +19,64 @@ const db = firebase.database();
 
 // --- Questions ---
 
-function generateBasicQ() {
-    const type = Math.floor(Math.random() * 2); // 0: find d (common difference), 1: find specific term (1st or 2nd)
-    const a1 = Math.floor(Math.random() * 15) + 1;
-    const d = Math.floor(Math.random() * 10) + 1;
+function generateBasicQ(level = 1) {
+    // Scaling Factors based on level (1-13)
+    const factor = Math.min(level, 13);
+    const a1Range = 10 + factor * 2;
+    const dRange = 5 + factor;
 
-    if (type === 0) {
+    const a1 = Math.floor(Math.random() * a1Range) + 1;
+    const d = Math.floor(Math.random() * dRange) + 1;
+
+    // Difficulty tiers based on level
+    let type;
+    if (level <= 4) {
+        type = Math.floor(Math.random() * 2); // 0 or 1
+    } else if (level <= 8) {
+        type = Math.floor(Math.random() * 3); // 0, 1, or 2
+    } else {
+        type = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
+    }
+
+    if (type === 0) { // Find d
         const seq = [a1, a1 + d, a1 + d * 2, a1 + d * 3];
-        const ans = d;
-        const opts = [ans, ans + 1, Math.abs(ans - 1), ans + 2].sort(() => Math.random() - 0.5);
-        const ansIdx = opts.indexOf(ans);
+        const opts = [d, d + 1, Math.abs(d - 1), d + 2].sort(() => Math.random() - 0.5);
         return {
             q: `ลำดับเลขคณิต ${seq.join(', ')}, ... มีค่า d เท่าใด?`,
-            opts: opts.map(String), ans: ansIdx, formula: "d = a₂ - a₁"
+            opts: opts.map(String), ans: opts.indexOf(d), formula: "d = a₂ - a₁"
         };
-    } else {
-        const n = Math.floor(Math.random() * 2) + 1; // Term 1 or 2
+    } else if (type === 1 || type === 2) { // Find specific term
+        // level 1-4: n is 1 or 2
+        // level 5-8: n is up to 5
+        // level 9+: n is up to 10
+        let n;
+        if (level <= 4) n = Math.floor(Math.random() * 2) + 1;
+        else if (level <= 8) n = Math.floor(Math.random() * 5) + 1;
+        else n = Math.floor(Math.random() * 6) + 1;
+
         const ans = a1 + (n - 1) * d;
-        const seqText = n === 1 ? `?, ${a1 + d}, ${a1 + d * 2}` : `${a1}, ?, ${a1 + d * 2}`;
+        let seqText;
+        if (n <= 3) {
+            const arr = [a1, a1 + d, a1 + d * 2];
+            arr[n - 1] = '?';
+            seqText = arr.join(', ');
+        } else {
+            seqText = `${a1}, ${a1 + d}, ${a1 + d * 2}`;
+        }
+
         const opts = [ans, ans + d, Math.abs(ans - d), ans + 1].sort(() => Math.random() - 0.5);
-        const ansIdx = opts.indexOf(ans);
         return {
             q: `จงหาพจน์ที่ ${n} ของลำดับเลขคณิต: ${seqText}, ...`,
-            opts: opts.map(String), ans: ansIdx, formula: "aₙ = a₁ + (n-1)d"
+            opts: opts.map(String), ans: opts.indexOf(ans), formula: "aₙ = a₁ + (n-1)d"
+        };
+    } else { // Find Sum (Only Level 5+)
+        const n = 5;
+        const an = a1 + (n - 1) * d;
+        const ans = (n / 2) * (a1 + an);
+        const opts = [ans, ans + d, ans - d, ans + 5].sort(() => Math.random() - 0.5);
+        return {
+            q: `ผลบวก 5 พจน์แรกของอนุกรม ${a1} + ${a1 + d} + ${a1 + d * 2} + ... คือ?`,
+            opts: opts.map(String), ans: opts.indexOf(ans), formula: "Sₙ = n/2 (a₁ + aₙ)"
         };
     }
 }
@@ -128,6 +163,17 @@ window.addEventListener('load', () => {
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + id).classList.add('active');
+
+    // Toggle Spectator UI
+    const spectatorUI = document.getElementById('spectator-ui');
+    if (spectatorUI) {
+        const isSpectatorScreen = ['watch', 'result', 'leaderboard', 'gameover'].includes(id);
+        if (role === 'player' && isSpectatorScreen) {
+            spectatorUI.classList.remove('hidden');
+        } else {
+            spectatorUI.classList.add('hidden');
+        }
+    }
 }
 function backToMain() { showScreen('main'); }
 
@@ -323,14 +369,21 @@ async function sendShoutout() {
 }
 
 function renderShoutout(text) {
-    const container = document.getElementById('stage-shoutouts');
-    if (!container) return;
-    const bubble = document.createElement('div');
-    bubble.className = 'shoutout-bubble';
-    bubble.textContent = text;
-    bubble.style.left = (Math.random() * 60 + 20) + '%';
-    container.appendChild(bubble);
-    setTimeout(() => bubble.remove(), 4000);
+    const containers = [
+        document.getElementById('stage-shoutouts'),
+        document.getElementById('host-shoutouts')
+    ].filter(el => el !== null);
+
+    if (containers.length === 0) return;
+
+    containers.forEach(container => {
+        const bubble = document.createElement('div');
+        bubble.className = 'shoutout-bubble';
+        bubble.textContent = text;
+        bubble.style.left = (Math.random() * 60 + 20) + '%';
+        container.appendChild(bubble);
+        setTimeout(() => bubble.remove(), 4000);
+    });
 }
 
 function startStageTimer(duration, displayOnly = false) {
@@ -381,7 +434,8 @@ async function nextStageTurn() {
     if (nextId === room.turnPlayerId && survivors.length > 1) {
         nextId = survivors.find(id => id !== room.turnPlayerId);
     }
-    const nextQ = generateBasicQ();
+    const nextLevel = room.qIndex + 2; // Next question level
+    const nextQ = generateBasicQ(nextLevel);
     await db.ref('rooms/' + roomId).update({
         qIndex: room.qIndex + 1,
         turnPlayerId: nextId,
@@ -407,7 +461,7 @@ document.getElementById('btn-start-game').addEventListener('click', async () => 
     if (role !== 'host') return;
     const snap = await db.ref('rooms/' + roomId).once('value');
     const room = snap.val();
-    const newQuestions = Array.from({ length: 13 }, generateBasicQ);
+    const newQuestions = Array.from({ length: 13 }, (_, i) => generateBasicQ(i + 1));
 
     if (room.gameMode === 'elimination') {
         const players = Object.keys(room.players || {});
