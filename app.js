@@ -20,43 +20,29 @@ const db = firebase.database();
 // --- Questions ---
 
 function generateBasicQ() {
-    const type = Math.floor(Math.random() * 3); // 0: find d, 1: find an, 2: find Sum
+    const type = Math.floor(Math.random() * 2); // 0: find d (common difference), 1: find specific term (1st or 2nd)
+    const a1 = Math.floor(Math.random() * 15) + 1;
+    const d = Math.floor(Math.random() * 10) + 1;
+
     if (type === 0) {
-        const a1 = Math.floor(Math.random() * 10) + 1;
-        const d = Math.floor(Math.random() * 5) + 2;
         const seq = [a1, a1 + d, a1 + d * 2, a1 + d * 3];
         const ans = d;
-        const opts = [ans, ans + 1, ans - 1, ans + 2].sort(() => Math.random() - 0.5);
+        const opts = [ans, ans + 1, Math.abs(ans - 1), ans + 2].sort(() => Math.random() - 0.5);
         return {
             q: `ลำดับเลขคณิต ${seq.join(', ')}, ... มีค่า d เท่าใด?`,
-            opts: opts.map(String), ans: opts.indexOf(ans), formula: "d = a₂ - a₁"
-        };
-    } else if (type === 1) {
-        const a1 = Math.floor(Math.random() * 10) + 1;
-        const d = Math.floor(Math.random() * 5) + 2;
-        const n = Math.floor(Math.random() * 5) + 4;
-        const ans = a1 + (n - 1) * d;
-        const opts = [ans, ans + d, ans - d, ans + 1].sort(() => Math.random() - 0.5);
-        return {
-            q: `พจน์ที่ ${n} ของลำดับ ${a1}, ${a1 + d}, ${a1 + d * 2}, ... คืออะไร?`,
-            opts: opts.map(String), ans: opts.indexOf(ans), formula: "aₙ = a₁ + (n-1)d"
+            opts: opts.map(String), ans: opts.indexOf(String(ans)), formula: "d = a₂ - a₁"
         };
     } else {
-        const a1 = Math.floor(Math.random() * 5) + 1;
-        const d = Math.floor(Math.random() * 3) + 1;
-        const n = 5;
-        const an = a1 + (n - 1) * d;
-        const ans = (n / 2) * (a1 + an);
-        const opts = [ans, ans + d, ans - d, ans + 5].sort(() => Math.random() - 0.5);
+        const n = Math.floor(Math.random() * 2) + 1; // Term 1 or 2
+        const ans = a1 + (n - 1) * d;
+        const seqText = n === 1 ? `?, ${a1 + d}, ${a1 + d * 2}` : `${a1}, ?, ${a1 + d * 2}`;
+        const opts = [ans, ans + d, Math.abs(ans - d), ans + 1].sort(() => Math.random() - 0.5);
         return {
-            q: `ผลบวก 5 พจน์แรกของอนุกรม ${a1} + ${a1 + d} + ${a1 + d * 2} + ... คือ?`,
-            opts: opts.map(String), ans: opts.indexOf(ans), formula: "Sₙ = n/2 (a₁ + aₙ)"
+            q: `จงหาพจน์ที่ ${n} ของลำดับเลขคณิต: ${seqText}, ...`,
+            opts: opts.map(String), ans: opts.indexOf(String(ans)), formula: "aₙ = a₁ + (n-1)d"
         };
     }
 }
-
-const QUESTIONS = Array.from({ length: 10 }, generateBasicQ);
-let eliminationQuestions = Array.from({ length: 20 }, generateBasicQ);
 
 const SHAPES = ["▲", "◆", "●", "■"];
 const COLORS = ["opt-red", "opt-blue", "opt-yellow", "opt-green"];
@@ -68,6 +54,7 @@ let unsubscribe = null;
 let gameMode = "normal"; // 'normal' or 'elimination'
 let isEliminated = false;
 let turnPlayerId = null;
+let roomQuestions = [];
 
 // ========================================================
 // TAB NAVIGATION
@@ -205,6 +192,7 @@ function listenRoom() {
     const handler = roomRef.on('value', snap => {
         const data = snap.val();
         if (!data) return;
+        roomQuestions = data.questions || [];
 
         switch (data.state) {
             case 'lobby': renderLobbyPlayers(data.players); break;
@@ -243,7 +231,8 @@ function listenRoom() {
     const shoutRef = db.ref('rooms/' + roomId + '/shoutouts');
     shoutRef.limitToLast(1).on('child_added', snap => {
         const msg = snap.val();
-        if (msg && Date.now() - msg.timestamp < 5000) {
+        // Relaxed check to ensure visibility even with slight clock drift
+        if (msg && Date.now() - msg.timestamp < 10000) {
             renderShoutout(msg.text);
         }
     });
@@ -255,8 +244,7 @@ function listenRoom() {
 }
 
 function handleStageState(data) {
-    const qList = (data.gameMode === 'elimination') ? eliminationQuestions : QUESTIONS;
-    const q = qList[data.qIndex];
+    const q = data.questions ? data.questions[data.qIndex] : null;
     if (!q) return;
     const isMyTurn = (playerId === data.turnPlayerId);
     const activePlayer = data.players[data.turnPlayerId];
@@ -285,12 +273,12 @@ function renderHostStage(data, q, player) {
     });
     renderAudience(data.players);
     showScreen('stage');
-    startStageTimer(15);
+    startStageTimer(30);
 }
 
 function renderPlayerStage(data, q) {
     document.getElementById('q-text').textContent = q.q;
-    document.getElementById('q-progress').textContent = 'ตาของคุณ! (15 วินาที)';
+    document.getElementById('q-progress').textContent = 'ตาของคุณ! (30 วินาที)';
     const grid = document.getElementById('options-grid');
     grid.innerHTML = '';
     q.opts.forEach((opt, i) => {
@@ -301,14 +289,14 @@ function renderPlayerStage(data, q) {
         grid.appendChild(btn);
     });
     showScreen('question');
-    startStageTimer(15);
+    startStageTimer(30);
 }
 
 function renderWatchStage(data, q, player) {
     document.getElementById('watching-player-name').textContent = player.name;
     document.getElementById('mini-q-text').textContent = q.q;
     showScreen('watch');
-    startStageTimer(15, true);
+    startStageTimer(30, true);
 }
 
 function renderAudience(players) {
@@ -368,7 +356,9 @@ function startStageTimer(duration, displayOnly = false) {
 
 async function submitStageAnswer(idx) {
     if (hasAnswered) return; hasAnswered = true;
-    const q = eliminationQuestions[currentQIndex];
+    const roomSnap = await db.ref('rooms/' + roomId).once('value');
+    const roomData = roomSnap.val();
+    const q = roomData.questions[currentQIndex];
     const correct = (idx === q.ans);
     if (!correct) {
         isEliminated = true;
@@ -389,9 +379,13 @@ async function nextStageTurn() {
     if (nextId === room.turnPlayerId && survivors.length > 1) {
         nextId = survivors.find(id => id !== room.turnPlayerId);
     }
-    eliminationQuestions[room.qIndex + 1] = generateBasicQ();
+    const nextQ = generateBasicQ();
     await db.ref('rooms/' + roomId).update({
-        qIndex: room.qIndex + 1, turnPlayerId: nextId, timerStart: Date.now(), turnDone: 0
+        qIndex: room.qIndex + 1,
+        turnPlayerId: nextId,
+        timerStart: Date.now(),
+        turnDone: 0,
+        [`questions/${room.qIndex + 1}`]: nextQ
     });
 }
 
@@ -411,13 +405,26 @@ document.getElementById('btn-start-game').addEventListener('click', async () => 
     if (role !== 'host') return;
     const snap = await db.ref('rooms/' + roomId).once('value');
     const room = snap.val();
+    const newQuestions = Array.from({ length: 13 }, generateBasicQ);
+
     if (room.gameMode === 'elimination') {
         const players = Object.keys(room.players || {});
         if (players.length === 0) return alert('No players?');
         const first = players[Math.floor(Math.random() * players.length)];
-        await db.ref('rooms/' + roomId).update({ state: 'stage', qIndex: 0, turnPlayerId: first });
+        await db.ref('rooms/' + roomId).update({
+            state: 'stage',
+            qIndex: 0,
+            turnPlayerId: first,
+            questions: [newQuestions[0]] // Start with first, BR generates one by one
+        });
     } else {
-        await db.ref('rooms/' + roomId).update({ state: 'question', qIndex: 0, answersCount: 0, timerStart: Date.now() });
+        await db.ref('rooms/' + roomId).update({
+            state: 'question',
+            qIndex: 0,
+            answersCount: 0,
+            timerStart: Date.now(),
+            questions: newQuestions
+        });
         const psnap = await db.ref('rooms/' + roomId + '/players').once('value');
         const updates = {}; psnap.forEach(c => { updates[c.key + '/answered'] = false; });
         await db.ref('rooms/' + roomId + '/players').update(updates);
@@ -425,9 +432,9 @@ document.getElementById('btn-start-game').addEventListener('click', async () => 
 });
 
 function showHostQuestion(data) {
-    const q = QUESTIONS[data.qIndex];
+    const q = data.questions[data.qIndex];
     document.getElementById('host-q-text').textContent = q.q;
-    document.getElementById('host-q-num').textContent = 'ข้อ ' + (data.qIndex + 1) + '/' + QUESTIONS.length;
+    document.getElementById('host-q-num').textContent = 'ข้อ ' + (data.qIndex + 1) + '/' + data.questions.length;
     document.getElementById('host-formula-text').textContent = q.formula;
     const optsArea = document.getElementById('host-options-display');
     optsArea.innerHTML = '';
@@ -443,9 +450,9 @@ function showHostQuestion(data) {
 }
 
 function showPlayerQuestion(data) {
-    const q = QUESTIONS[data.qIndex];
+    const q = data.questions[data.qIndex];
     document.getElementById('q-text').textContent = q.q;
-    document.getElementById('q-progress').textContent = 'ข้อ ' + (data.qIndex + 1) + '/' + QUESTIONS.length;
+    document.getElementById('q-progress').textContent = 'ข้อ ' + (data.qIndex + 1) + '/' + data.questions.length;
     document.getElementById('formula-text').textContent = q.formula;
     const grid = document.getElementById('options-grid');
     grid.innerHTML = '';
@@ -481,7 +488,7 @@ function startCountdown(textId, ringId) {
 
 async function submitAnswer(idx) {
     if (hasAnswered || role !== 'player') return; hasAnswered = true;
-    const q = QUESTIONS[currentQIndex]; const correct = (idx === q.ans);
+    const q = roomQuestions[currentQIndex]; const correct = (idx === q.ans);
     let pts = correct ? 1000 + Math.floor((timeLeft / 30) * 500) : 0;
     totalScore += pts;
     await db.ref('rooms/' + roomId + '/players/' + playerId).update({ score: totalScore, answered: true });
@@ -521,7 +528,7 @@ function renderLeaderboard(players) {
 document.getElementById('btn-next-q').addEventListener('click', async () => {
     if (role !== 'host') return;
     const nextIdx = currentQIndex + 1;
-    if (nextIdx >= QUESTIONS.length) { await db.ref('rooms/' + roomId).update({ state: 'gameover' }); return; }
+    if (nextIdx >= roomQuestions.length) { await db.ref('rooms/' + roomId).update({ state: 'gameover' }); return; }
     const psnap = await db.ref('rooms/' + roomId + '/players').once('value');
     const updates = {}; psnap.forEach(c => { updates[c.key + '/answered'] = false; });
     await db.ref('rooms/' + roomId + '/players').update(updates);
