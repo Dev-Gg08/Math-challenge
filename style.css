@@ -102,6 +102,8 @@ body {
 
 .screen-full {
     padding: 0 !important;
+    height: 100vh !important;
+    overflow: hidden !important;
 }
 
 .host-screen-fullpage {
