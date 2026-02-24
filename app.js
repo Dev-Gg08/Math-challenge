@@ -35,17 +35,39 @@ const QUESTIONS = [
 ];
 
 function generateBasicQ() {
-    const a = Math.floor(Math.random() * 20) + 1;
-    const b = Math.floor(Math.random() * 20) + 1;
-    const op = Math.random() > 0.5 ? '+' : '-';
-    const ans = op === '+' ? a + b : a - b;
-    const opts = [ans, ans + 2, ans - 2, ans + Math.floor(Math.random() * 5) + 1].sort(() => Math.random() - 0.5);
-    return {
-        q: `${a} ${op} ${b} = ?`,
-        opts: opts.map(String),
-        ans: opts.indexOf(ans),
-        formula: "Basic Math"
-    };
+    const type = Math.floor(Math.random() * 3); // 0: find d, 1: find an, 2: find Sum
+    if (type === 0) {
+        const a1 = Math.floor(Math.random() * 10) + 1;
+        const d = Math.floor(Math.random() * 5) + 2;
+        const seq = [a1, a1 + d, a1 + d * 2, a1 + d * 3];
+        const ans = d;
+        const opts = [ans, ans + 1, ans - 1, ans + 2].sort(() => Math.random() - 0.5);
+        return {
+            q: `ลำดับเลขคณิต ${seq.join(', ')}, ... มีค่า d เท่าใด?`,
+            opts: opts.map(String), ans: opts.indexOf(ans), formula: "d = a₂ - a₁"
+        };
+    } else if (type === 1) {
+        const a1 = Math.floor(Math.random() * 10) + 1;
+        const d = Math.floor(Math.random() * 5) + 2;
+        const n = Math.floor(Math.random() * 5) + 4;
+        const ans = a1 + (n - 1) * d;
+        const opts = [ans, ans + d, ans - d, ans + 1].sort(() => Math.random() - 0.5);
+        return {
+            q: `พจน์ที่ ${n} ของลำดับ ${a1}, ${a1 + d}, ${a1 + d * 2}, ... คืออะไร?`,
+            opts: opts.map(String), ans: opts.indexOf(ans), formula: "aₙ = a₁ + (n-1)d"
+        };
+    } else {
+        const a1 = Math.floor(Math.random() * 5) + 1;
+        const d = Math.floor(Math.random() * 3) + 1;
+        const n = 5;
+        const an = a1 + (n - 1) * d;
+        const ans = (n / 2) * (a1 + an);
+        const opts = [ans, ans + d, ans - d, ans + 5].sort(() => Math.random() - 0.5);
+        return {
+            q: `ผลบวก 5 พจน์แรกของอนุกรม ${a1} + ${a1 + d} + ${a1 + d * 2} + ... คือ?`,
+            opts: opts.map(String), ans: opts.indexOf(ans), formula: "Sₙ = n/2 (a₁ + aₙ)"
+        };
+    }
 }
 
 let eliminationQuestions = Array.from({ length: 20 }, generateBasicQ);
@@ -225,7 +247,7 @@ function listenRoom() {
                 }
                 if (role === 'host' && data.turnDone > 0) {
                     db.ref('rooms/' + roomId + '/turnDone').set(0);
-                    setTimeout(() => nextStageTurn(), 1500);
+                    nextStageTurn(); // Immediate next turn
                 }
                 break;
         }
@@ -264,12 +286,12 @@ function renderHostStage(data, q, player) {
     });
     renderAudience(data.players);
     showScreen('stage');
-    startStageTimer(10);
+    startStageTimer(15);
 }
 
 function renderPlayerStage(data, q) {
     document.getElementById('q-text').textContent = q.q;
-    document.getElementById('q-progress').textContent = 'ตาของคุณ! (10 วินาที)';
+    document.getElementById('q-progress').textContent = 'ตาของคุณ! (15 วินาที)';
     const grid = document.getElementById('options-grid');
     grid.innerHTML = '';
     q.opts.forEach((opt, i) => {
@@ -280,14 +302,14 @@ function renderPlayerStage(data, q) {
         grid.appendChild(btn);
     });
     showScreen('question');
-    startStageTimer(10);
+    startStageTimer(15);
 }
 
 function renderWatchStage(data, q, player) {
     document.getElementById('watching-player-name').textContent = player.name;
     document.getElementById('mini-q-text').textContent = q.q;
     showScreen('watch');
-    startStageTimer(10, true);
+    startStageTimer(15, true);
 }
 
 function renderAudience(players) {
@@ -319,7 +341,7 @@ function startStageTimer(duration, displayOnly = false) {
                 await db.ref('rooms/' + roomId + '/players/' + playerId).update({ isEliminated: true });
                 showPlayerResult(false, 0);
             }
-            if (!displayOnly && role === 'host') setTimeout(() => nextStageTurn(), 1000);
+            if (!displayOnly && role === 'host') nextStageTurn(); // No delay on host timeout
         }
     }, 1000);
 }
