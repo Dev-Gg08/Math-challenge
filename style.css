@@ -1391,3 +1391,217 @@ body {
         font-size: 1.6rem;
     }
 }
+
+/* ================== ELIMINATION MODE & DRESS UP ================== */
+.mode-select {
+    margin-top: 15px;
+    text-align: left;
+}
+
+.mode-label {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+}
+
+.mode-toggle-group {
+    display: flex;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 5px;
+    border-radius: 12px;
+}
+
+.mode-toggle {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.mode-toggle.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.btn-glass {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    color: white;
+}
+
+/* ================== STAGE SCREEN ================== */
+.stage-bg {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 100%, #1a1a2e 0%, #000 70%);
+    z-index: -1;
+}
+
+.spotlight {
+    position: absolute;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 600px;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    clip-path: polygon(20% 100%, 80% 100%, 100% 0, 0 0);
+    opacity: 0.5;
+}
+
+.stage-content {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+    z-index: 2;
+}
+
+.stage-top {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.timer-box-special {
+    width: 100px;
+    height: 100px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: 900;
+    box-shadow: 0 0 30px var(--accent-glow);
+    animation: heartBeat 1s infinite;
+}
+
+@keyframes heartBeat {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.stage-q-box {
+    flex: 1;
+    padding: 20px;
+    text-align: center;
+}
+
+.stage-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-on-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.player-on-stage .avatar-big {
+    font-size: 8rem;
+}
+
+.stage-options-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.audience-area {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 0 20px;
+}
+
+.audience-chip {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.audience-chip.eliminated {
+    opacity: 0.3;
+    filter: grayscale(1);
+    text-decoration: line-through;
+}
+
+/* Watch Screen */
+.watch-overlay {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+}
+
+.watch-header {
+    margin-bottom: 30px;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.watch-stage-mini {
+    background: var(--glass);
+    padding: 30px;
+    border-radius: 20px;
+    text-align: center;
+    width: 90%;
+    max-width: 500px;
+}
+
+.mini-q {
+    font-size: 2rem;
+    font-weight: 900;
+    margin-bottom: 20px;
+}
+
+.mini-timer {
+    font-size: 4rem;
+    font-weight: 900;
+    color: var(--accent);
+}
+
+@media (max-width: 600px) {
+    .cust-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .stage-options-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -34,25 +34,40 @@ const QUESTIONS = [
     { q: "พจน์แรก (a₁) ของลำดับเรขาคณิตที่มี r=3 และ a₂=12 คืออะไร?", opts: ["2", "3", "4", "6"], ans: 2, formula: "a₁ = a₂ / r" }
 ];
 
+function generateBasicQ() {
+    const a = Math.floor(Math.random() * 20) + 1;
+    const b = Math.floor(Math.random() * 20) + 1;
+    const op = Math.random() > 0.5 ? '+' : '-';
+    const ans = op === '+' ? a + b : a - b;
+    const opts = [ans, ans + 2, ans - 2, ans + Math.floor(Math.random() * 5) + 1].sort(() => Math.random() - 0.5);
+    return {
+        q: `${a} ${op} ${b} = ?`,
+        opts: opts.map(String),
+        ans: opts.indexOf(ans),
+        formula: "Basic Math"
+    };
+}
+
+let eliminationQuestions = Array.from({ length: 20 }, generateBasicQ);
+
 const SHAPES = ["▲", "◆", "●", "■"];
 const COLORS = ["opt-red", "opt-blue", "opt-yellow", "opt-green"];
-
-
 
 // --- State ---
 let role = null, roomId = null, playerId = null, nickname = null;
 let totalScore = 0, hasAnswered = false, timerInterval = null, timeLeft = 30, currentQIndex = -1;
 let unsubscribe = null;
+let gameMode = "normal"; // 'normal' or 'elimination'
+let isEliminated = false;
+let turnPlayerId = null;
 
 // ========================================================
 // TAB NAVIGATION
 // ========================================================
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        // Deactivate all tabs
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        // Activate clicked
         btn.classList.add('active');
         document.getElementById(btn.dataset.tab).classList.add('active');
     });
@@ -63,18 +78,15 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // ========================================================
 const savedTheme = localStorage.getItem('mathquiz-theme') || 'snow';
 if (savedTheme !== 'snow') document.documentElement.setAttribute('data-theme', savedTheme);
-// Mark saved theme as active
 document.querySelectorAll('.theme-card').forEach(card => {
     if (card.dataset.theme === savedTheme) card.classList.add('active');
     else card.classList.remove('active');
 });
 
-// Particles Effect Logic
 function initParticles(theme) {
     const container = document.getElementById('particles-container');
     if (!container) return;
     container.innerHTML = '';
-
     if (theme === 'purple') return;
 
     const count = theme === 'snow' ? 50 : 80;
@@ -89,13 +101,11 @@ function initParticles(theme) {
         p.style.opacity = Math.random();
         if (theme === 'snow') {
             const size = (Math.random() * 5 + 2) + 'px';
-            p.style.width = size;
-            p.style.height = size;
+            p.style.width = size; p.style.height = size;
         }
         container.appendChild(p);
     }
 }
-
 initParticles(savedTheme);
 
 document.querySelectorAll('.theme-card').forEach(card => {
@@ -103,35 +113,16 @@ document.querySelectorAll('.theme-card').forEach(card => {
         const theme = card.dataset.theme;
         document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
-        if (theme === 'snow' || theme === 'purple') {
-            document.documentElement.setAttribute('data-theme', theme);
-            if (theme === 'snow') document.documentElement.setAttribute('data-theme', 'snow');
-            else if (theme === 'purple') document.documentElement.setAttribute('data-theme', 'purple');
-        } else {
-            document.documentElement.setAttribute('data-theme', theme);
-        }
-
-        if (theme === 'snow') {
-            document.documentElement.setAttribute('data-theme', 'snow');
-        } else if (theme === 'purple') {
-            document.documentElement.setAttribute('data-theme', 'purple');
-        }
-
-        // Simplified theme application
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('mathquiz-theme', theme);
         initParticles(theme);
     });
 });
 
-
-
 window.addEventListener('load', () => {
     const params = new URLSearchParams(window.location.search);
     const pin = params.get('pin');
-    if (pin) {
-        document.getElementById('input-pin').value = pin;
-    }
+    if (pin) document.getElementById('input-pin').value = pin;
 });
 
 // ========================================================
@@ -141,13 +132,10 @@ function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + id).classList.add('active');
 }
-
-function backToMain() {
-    showScreen('main');
-}
+function backToMain() { showScreen('main'); }
 
 // ========================================================
-// HOME — JOIN ROOM
+// JOIN & CREATE ROOM
 // ========================================================
 document.getElementById('btn-join').addEventListener('click', joinRoom);
 
@@ -162,46 +150,42 @@ async function joinRoom() {
         const room = snap.val();
         if (room.state !== 'lobby') return alert('เกมเริ่มไปแล้ว!');
 
-        roomId = pin;
-        role = 'player';
-        playerId = 'p' + Date.now();
+        roomId = pin; role = 'player'; playerId = 'p' + Date.now();
 
         await db.ref('rooms/' + pin + '/players/' + playerId).set({
-            name: nickname, score: 0, answered: false
+            name: nickname, score: 0, answered: false, isEliminated: false
         });
 
         document.getElementById('lobby-pin').textContent = pin;
         showScreen('lobby');
         listenRoom();
-    } catch (e) {
-        console.error(e);
-        alert('เชื่อมต่อ Firebase ไม่ได้! ตรวจสอบ Config');
-    }
+    } catch (e) { console.error(e); alert('Error connecting to Firebase'); }
 }
 
-// ========================================================
-// CREATE ROOM
-// ========================================================
+document.querySelectorAll('.mode-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-toggle').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        gameMode = btn.dataset.mode;
+    });
+});
+
 document.getElementById('btn-create-room').addEventListener('click', createRoom);
 
 async function createRoom() {
     const pin = String(Math.floor(1000 + Math.random() * 9000));
-    roomId = pin;
-    role = 'host';
+    roomId = pin; role = 'host';
 
     try {
         await db.ref('rooms/' + pin).set({
-            state: 'lobby', qIndex: -1, answersCount: 0, timerStart: 0, players: {}
+            state: 'lobby', qIndex: -1, answersCount: 0, timerStart: 0, players: {},
+            gameMode: gameMode, turnPlayerId: null, turnDone: 0
         });
-
         document.getElementById('lobby-pin').textContent = pin;
         document.getElementById('host-start-area').classList.remove('hidden');
         showScreen('lobby');
         listenRoom();
-    } catch (e) {
-        console.error(e);
-        alert('เชื่อมต่อ Firebase ไม่ได้! ตรวจสอบ Config');
-    }
+    } catch (e) { console.error(e); alert('Error creating room'); }
 }
 
 // ========================================================
@@ -215,13 +199,10 @@ function listenRoom() {
         if (!data) return;
 
         switch (data.state) {
-            case 'lobby':
-                renderLobbyPlayers(data.players);
-                break;
+            case 'lobby': renderLobbyPlayers(data.players); break;
             case 'question':
                 if (currentQIndex !== data.qIndex) {
-                    currentQIndex = data.qIndex;
-                    hasAnswered = false;
+                    currentQIndex = data.qIndex; hasAnswered = false;
                     role === 'host' ? showHostQuestion(data) : showPlayerQuestion(data);
                 }
                 if (role === 'host') {
@@ -235,20 +216,143 @@ function listenRoom() {
                 }
                 document.getElementById('ac-count').textContent = data.answersCount || 0;
                 break;
-            case 'leaderboard':
-                renderLeaderboard(data.players);
-                break;
-            case 'gameover':
-                renderGameOver(data.players);
+            case 'leaderboard': renderLeaderboard(data.players); break;
+            case 'gameover': renderGameOver(data.players); break;
+            case 'stage':
+                if (currentQIndex !== data.qIndex || turnPlayerId !== data.turnPlayerId) {
+                    currentQIndex = data.qIndex; turnPlayerId = data.turnPlayerId;
+                    hasAnswered = false; handleStageState(data);
+                }
+                if (role === 'host' && data.turnDone > 0) {
+                    db.ref('rooms/' + roomId + '/turnDone').set(0);
+                    setTimeout(() => nextStageTurn(), 1500);
+                }
                 break;
         }
     });
     unsubscribe = () => roomRef.off('value', handler);
 }
 
-// ========================================================
-// LOBBY
-// ========================================================
+function handleStageState(data) {
+    const qList = (data.gameMode === 'elimination') ? eliminationQuestions : QUESTIONS;
+    const q = qList[data.qIndex];
+    if (!q) return;
+    const isMyTurn = (playerId === data.turnPlayerId);
+    const activePlayer = data.players[data.turnPlayerId];
+
+    if (role === 'host') { renderHostStage(data, q, activePlayer); }
+    else {
+        if (isMyTurn) renderPlayerStage(data, q);
+        else renderWatchStage(data, q, activePlayer);
+    }
+}
+
+function renderHostStage(data, q, player) {
+    document.getElementById('stage-q-text').textContent = q.q;
+    const stagePlayer = document.getElementById('active-player-stage');
+    stagePlayer.innerHTML = `
+        <div style="font-size: 8rem; margin: 20px 0;">👤</div>
+        <div class="player-name-stage" style="font-size: 3rem;">${player.name}</div>
+    `;
+    const optsArea = document.getElementById('stage-options');
+    optsArea.innerHTML = '';
+    q.opts.forEach((opt, i) => {
+        const btn = document.createElement('div');
+        btn.className = 'host-opt-big ' + COLORS[i];
+        btn.innerHTML = '<span class="opt-shape">' + SHAPES[i] + '</span><span class="opt-text">' + opt + '</span>';
+        optsArea.appendChild(btn);
+    });
+    renderAudience(data.players);
+    showScreen('stage');
+    startStageTimer(10);
+}
+
+function renderPlayerStage(data, q) {
+    document.getElementById('q-text').textContent = q.q;
+    document.getElementById('q-progress').textContent = 'ตาของคุณ! (10 วินาที)';
+    const grid = document.getElementById('options-grid');
+    grid.innerHTML = '';
+    q.opts.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'opt-btn ' + COLORS[i];
+        btn.innerHTML = '<span class="opt-shape">' + SHAPES[i] + '</span><span class="opt-text">' + opt + '</span>';
+        btn.addEventListener('click', () => submitStageAnswer(i));
+        grid.appendChild(btn);
+    });
+    showScreen('question');
+    startStageTimer(10);
+}
+
+function renderWatchStage(data, q, player) {
+    document.getElementById('watching-player-name').textContent = player.name;
+    document.getElementById('mini-q-text').textContent = q.q;
+    showScreen('watch');
+    startStageTimer(10, true);
+}
+
+function renderAudience(players) {
+    const list = document.getElementById('audience-list');
+    list.innerHTML = '';
+    Object.values(players).forEach(p => {
+        const chip = document.createElement('div');
+        chip.className = 'audience-chip' + (p.isEliminated ? ' eliminated' : '');
+        chip.textContent = p.name;
+        list.appendChild(chip);
+    });
+}
+
+function startStageTimer(duration, displayOnly = false) {
+    if (timerInterval) clearInterval(timerInterval);
+    let time = duration;
+    const updateUI = (val) => {
+        ['stage-timer-text', 'mini-timer', 'timer-text'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.textContent = val;
+        });
+    };
+    updateUI(time);
+    timerInterval = setInterval(async () => {
+        time--; updateUI(time);
+        if (time <= 0) {
+            clearInterval(timerInterval);
+            if (!displayOnly && role === 'player' && turnPlayerId === playerId && !hasAnswered) {
+                isEliminated = true;
+                await db.ref('rooms/' + roomId + '/players/' + playerId).update({ isEliminated: true });
+                showPlayerResult(false, 0);
+            }
+            if (!displayOnly && role === 'host') setTimeout(() => nextStageTurn(), 1000);
+        }
+    }, 1000);
+}
+
+async function submitStageAnswer(idx) {
+    if (hasAnswered) return; hasAnswered = true;
+    const q = eliminationQuestions[currentQIndex];
+    const correct = (idx === q.ans);
+    if (!correct) {
+        isEliminated = true;
+        await db.ref('rooms/' + roomId + '/players/' + playerId).update({ isEliminated: true });
+    }
+    showPlayerResult(correct, correct ? 1000 : 0);
+    await db.ref('rooms/' + roomId).update({ turnDone: Date.now() });
+}
+
+async function nextStageTurn() {
+    if (role !== 'host') return; clearInterval(timerInterval);
+    const snap = await db.ref('rooms/' + roomId).once('value');
+    const room = snap.val();
+    const survivors = Object.entries(room.players || {}).filter(([id, p]) => !p.isEliminated).map(([id]) => id);
+    if (survivors.length <= 1) { await db.ref('rooms/' + roomId).update({ state: 'gameover' }); return; }
+
+    let nextId = survivors[Math.floor(Math.random() * survivors.length)];
+    if (nextId === room.turnPlayerId && survivors.length > 1) {
+        nextId = survivors.find(id => id !== room.turnPlayerId);
+    }
+    eliminationQuestions[room.qIndex + 1] = generateBasicQ();
+    await db.ref('rooms/' + roomId).update({
+        qIndex: room.qIndex + 1, turnPlayerId: nextId, timerStart: Date.now(), turnDone: 0
+    });
+}
+
 function renderLobbyPlayers(players) {
     const container = document.getElementById('lobby-players');
     container.innerHTML = '';
@@ -256,35 +360,33 @@ function renderLobbyPlayers(players) {
     document.getElementById('lobby-player-count').textContent = arr.length;
     arr.forEach(p => {
         const chip = document.createElement('div');
-        chip.className = 'player-chip';
-        chip.textContent = p.name;
+        chip.className = 'player-chip'; chip.textContent = p.name;
         container.appendChild(chip);
     });
 }
 
-// ========================================================
-// START GAME (HOST)
-// ========================================================
 document.getElementById('btn-start-game').addEventListener('click', async () => {
     if (role !== 'host') return;
-    await db.ref('rooms/' + roomId).update({
-        state: 'question', qIndex: 0, answersCount: 0, timerStart: Date.now()
-    });
-    const snap = await db.ref('rooms/' + roomId + '/players').once('value');
-    const updates = {};
-    snap.forEach(child => { updates[child.key + '/answered'] = false; });
-    await db.ref('rooms/' + roomId + '/players').update(updates);
+    const snap = await db.ref('rooms/' + roomId).once('value');
+    const room = snap.val();
+    if (room.gameMode === 'elimination') {
+        const players = Object.keys(room.players || {});
+        if (players.length === 0) return alert('No players?');
+        const first = players[Math.floor(Math.random() * players.length)];
+        await db.ref('rooms/' + roomId).update({ state: 'stage', qIndex: 0, turnPlayerId: first });
+    } else {
+        await db.ref('rooms/' + roomId).update({ state: 'question', qIndex: 0, answersCount: 0, timerStart: Date.now() });
+        const psnap = await db.ref('rooms/' + roomId + '/players').once('value');
+        const updates = {}; psnap.forEach(c => { updates[c.key + '/answered'] = false; });
+        await db.ref('rooms/' + roomId + '/players').update(updates);
+    }
 });
 
-// ========================================================
-// HOST QUESTION VIEW
-// ========================================================
 function showHostQuestion(data) {
     const q = QUESTIONS[data.qIndex];
     document.getElementById('host-q-text').textContent = q.q;
     document.getElementById('host-q-num').textContent = 'ข้อ ' + (data.qIndex + 1) + '/' + QUESTIONS.length;
     document.getElementById('host-formula-text').textContent = q.formula;
-
     const optsArea = document.getElementById('host-options-display');
     optsArea.innerHTML = '';
     q.opts.forEach((opt, i) => {
@@ -295,21 +397,14 @@ function showHostQuestion(data) {
     });
     document.getElementById('host-answers').textContent = data.answersCount || 0;
     document.getElementById('host-total-players').textContent = Object.keys(data.players || {}).length;
-    showScreen('host-wait');
-    startCountdown('host-timer-text', 'host-timer-ring');
+    showScreen('host-wait'); startCountdown('host-timer-text', 'host-timer-ring');
 }
 
-// ========================================================
-// PLAYER QUESTION VIEW
-// ========================================================
 function showPlayerQuestion(data) {
     const q = QUESTIONS[data.qIndex];
     document.getElementById('q-text').textContent = q.q;
     document.getElementById('q-progress').textContent = 'ข้อ ' + (data.qIndex + 1) + '/' + QUESTIONS.length;
-    document.getElementById('q-footer-pin').textContent = 'PIN: ' + roomId;
     document.getElementById('formula-text').textContent = q.formula;
-    document.getElementById('ac-count').textContent = data.answersCount || 0;
-
     const grid = document.getElementById('options-grid');
     grid.innerHTML = '';
     q.opts.forEach((opt, i) => {
@@ -319,29 +414,19 @@ function showPlayerQuestion(data) {
         btn.addEventListener('click', () => submitAnswer(i));
         grid.appendChild(btn);
     });
-    showScreen('question');
-    startCountdown('timer-text', 'timer-ring');
+    showScreen('question'); startCountdown('timer-text', 'timer-ring');
 }
 
-// ========================================================
-// TIMER
-// ========================================================
 function startCountdown(textId, ringId) {
     if (timerInterval) clearInterval(timerInterval);
-
-    const textEl = document.getElementById(textId);
-    const ringEl = document.getElementById(ringId);
     const circumference = 2 * Math.PI * 45;
-
     const updateTimer = () => {
         db.ref('rooms/' + roomId + '/timerStart').once('value', snap => {
-            const timerStart = snap.val() || Date.now();
-            const elapsed = Math.floor((Date.now() - timerStart) / 1000);
+            const start = snap.val() || Date.now();
+            const elapsed = Math.floor((Date.now() - start) / 1000);
             timeLeft = Math.max(30 - elapsed, 0);
-
-            textEl.textContent = timeLeft;
-            ringEl.style.strokeDashoffset = ((30 - timeLeft) / 30) * circumference;
-
+            document.getElementById(textId).textContent = timeLeft;
+            document.getElementById(ringId).style.strokeDashoffset = ((30 - timeLeft) / 30) * circumference;
             if (timeLeft <= 0) {
                 clearInterval(timerInterval);
                 if (role === 'host') goLeaderboard();
@@ -349,128 +434,87 @@ function startCountdown(textId, ringId) {
             }
         });
     };
-
-    updateTimer();
-    timerInterval = setInterval(updateTimer, 1000);
+    updateTimer(); timerInterval = setInterval(updateTimer, 1000);
 }
 
-// ========================================================
-// SUBMIT ANSWER
-// ========================================================
-async function submitAnswer(chosenIndex) {
-    if (hasAnswered || role !== 'player') return;
-    hasAnswered = true;
-
-    document.querySelectorAll('.opt-btn').forEach(b => b.classList.add('disabled'));
-    document.querySelectorAll('.opt-btn')[chosenIndex].classList.add('selected');
-
-    const q = QUESTIONS[currentQIndex];
-    const correct = (chosenIndex === q.ans);
-    let points = 0;
-    if (correct) points = 1000 + Math.floor((Math.max(timeLeft, 0) / 30) * 500);
-    totalScore += points;
-
+async function submitAnswer(idx) {
+    if (hasAnswered || role !== 'player') return; hasAnswered = true;
+    const q = QUESTIONS[currentQIndex]; const correct = (idx === q.ans);
+    let pts = correct ? 1000 + Math.floor((timeLeft / 30) * 500) : 0;
+    totalScore += pts;
     await db.ref('rooms/' + roomId + '/players/' + playerId).update({ score: totalScore, answered: true });
-    await db.ref('rooms/' + roomId + '/answersCount').transaction(current => (current || 0) + 1);
-
-    setTimeout(() => showPlayerResult(correct, points), 300);
+    await db.ref('rooms/' + roomId + '/answersCount').transaction(c => (c || 0) + 1);
+    showPlayerResult(correct, pts);
 }
 
-function showPlayerResult(correct, points) {
+function showPlayerResult(correct, pts) {
     clearInterval(timerInterval);
     const box = document.getElementById('result-box');
     box.innerHTML = correct
-        ? '<div class="result-emoji">✅</div><div class="result-title" style="color:#5efc5e;">Correct!</div><div class="result-points">+' + points + ' points</div><div class="result-total">Total: ' + totalScore.toLocaleString() + '</div>'
-        : '<div class="result-emoji">❌</div><div class="result-title" style="color:#ff6b6b;">Incorrect</div><div class="result-points">+0 points</div><div class="result-total">Total: ' + totalScore.toLocaleString() + '</div>';
+        ? '<div class="result-emoji">✅</div><div class="result-title" style="color:#5efc5e;">Correct!</div><div class="result-points">+' + pts + ' pts</div>'
+        : '<div class="result-emoji">❌</div><div class="result-title" style="color:#ff6b6b;">Incorrect</div>';
+    box.innerHTML += '<div class="result-total">Total: ' + totalScore.toLocaleString() + '</div>';
     showScreen('result');
 }
 
-// ========================================================
-// LEADERBOARD
-// ========================================================
 async function goLeaderboard() {
-    if (role !== 'host') return;
-    clearInterval(timerInterval);
+    if (role !== 'host') return; clearInterval(timerInterval);
     await db.ref('rooms/' + roomId).update({ state: 'leaderboard' });
 }
 
 function renderLeaderboard(players) {
     clearInterval(timerInterval);
-    const list = document.getElementById('lb-list');
-    list.innerHTML = '';
-    const sorted = Object.entries(players || {}).map(([id, d]) => ({ id, ...d })).sort((a, b) => b.score - a.score);
-
+    const list = document.getElementById('lb-list'); list.innerHTML = '';
+    const sorted = Object.values(players || {}).sort((a, b) => b.score - a.score);
     sorted.forEach((p, i) => {
         const row = document.createElement('div');
-        row.className = 'lb-row' + (p.id === playerId ? ' me' : '');
-        row.style.animationDelay = (i * 0.08) + 's';
-        row.innerHTML = '<div class="lb-left"><span class="lb-rank">' + (i + 1) + '</span><span class="lb-name">' + p.name + '</span></div><span class="lb-score">' + (p.score || 0).toLocaleString() + '</span>';
+        row.className = 'lb-row';
+        row.innerHTML = '<div class="lb-left"><span>' + (i + 1) + '</span><span>' + p.name + '</span></div><span>' + (p.score || 0).toLocaleString() + '</span>';
         list.appendChild(row);
     });
-
     document.getElementById('lb-host-controls').classList[role === 'host' ? 'remove' : 'add']('hidden');
     showScreen('leaderboard');
 }
 
-// ========================================================
-// NEXT QUESTION
-// ========================================================
 document.getElementById('btn-next-q').addEventListener('click', async () => {
     if (role !== 'host') return;
     const nextIdx = currentQIndex + 1;
-    if (nextIdx >= QUESTIONS.length) {
-        await db.ref('rooms/' + roomId).update({ state: 'gameover' });
-        return;
-    }
-    const snap = await db.ref('rooms/' + roomId + '/players').once('value');
-    const updates = {};
-    snap.forEach(child => { updates[child.key + '/answered'] = false; });
+    if (nextIdx >= QUESTIONS.length) { await db.ref('rooms/' + roomId).update({ state: 'gameover' }); return; }
+    const psnap = await db.ref('rooms/' + roomId + '/players').once('value');
+    const updates = {}; psnap.forEach(c => { updates[c.key + '/answered'] = false; });
     await db.ref('rooms/' + roomId + '/players').update(updates);
     await db.ref('rooms/' + roomId).update({ state: 'question', qIndex: nextIdx, answersCount: 0, timerStart: Date.now() });
 });
 
-// ========================================================
-// GAME OVER
-// ========================================================
 function renderGameOver(players) {
     clearInterval(timerInterval);
-    const sorted = Object.values(players || {}).sort((a, b) => b.score - a.score);
-    const podium = document.getElementById('podium');
-    podium.innerHTML = '';
+    db.ref('rooms/' + roomId + '/gameMode').once('value', msnap => {
+        const mode = msnap.val();
+        const sorted = Object.values(players || {}).sort((a, b) => b.score - a.score);
+        const podium = document.getElementById('podium'); podium.innerHTML = '';
+        document.querySelector('.gameover-title').textContent = (mode === 'elimination') ? 'VICTORY ROYALE' : 'GAME OVER';
 
-    const order = [];
-    if (sorted[1]) order.push({ ...sorted[1], rank: 2 });
-    if (sorted[0]) order.push({ ...sorted[0], rank: 1 });
-    if (sorted[2]) order.push({ ...sorted[2], rank: 3 });
+        const order = [];
+        if (sorted[1]) order.push({ ...sorted[1], rank: 2 });
+        if (sorted[0]) order.push({ ...sorted[0], rank: 1 });
+        if (sorted[2]) order.push({ ...sorted[2], rank: 3 });
 
-    const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
-    order.forEach(p => {
-        if (!p.name) return; // Skip if no data
-        const col = document.createElement('div');
-        col.className = 'podium-col podium-' + p.rank;
-        col.innerHTML = '<div class="podium-medal">' + medals[p.rank] + '</div><div class="podium-name">' + p.name + '</div><div class="podium-score">' + (p.score || 0).toLocaleString() + '</div>';
-        podium.appendChild(col);
+        const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+        order.forEach(p => {
+            const col = document.createElement('div'); col.className = 'podium-col podium-' + p.rank;
+            col.innerHTML = `<div class="podium-medal">${medals[p.rank]}</div><div style="font-size:3rem;margin:10px 0;">👤</div><div class="podium-name">${p.name}</div><div class="podium-score">${(mode === 'elimination' && p.isEliminated) ? 'Eliminated' : (p.score || 0).toLocaleString()}</div>`;
+            podium.appendChild(col);
+        });
+        spawnConfetti(); showScreen('gameover');
     });
-
-    spawnConfetti();
-    showScreen('gameover');
 }
 
 function spawnConfetti() {
-    const area = document.getElementById('confetti-area');
-    area.innerHTML = '';
-    const colors = ['#e21b3c', '#1368ce', '#d89e00', '#26890c', '#ffd700', '#ff69b4'];
+    const area = document.getElementById('confetti-area'); area.innerHTML = '';
     for (let i = 0; i < 60; i++) {
         const c = document.createElement('div');
-        c.style.cssText = 'position:fixed;width:10px;height:10px;border-radius:2px;background:' + colors[Math.floor(Math.random() * colors.length)] + ';top:-10px;left:' + Math.random() * 100 + 'vw;animation:confettiFall ' + (2 + Math.random() * 3) + 's linear forwards;animation-delay:' + (Math.random() * 2) + 's;opacity:0.8;z-index:999;';
+        c.style.cssText = 'position:fixed;width:10px;height:10px;background:hsl(' + (Math.random() * 360) + ',70%,50%);top:-10px;left:' + Math.random() * 100 + 'vw;animation:confettiFall ' + (2 + Math.random() * 3) + 's linear forwards;';
         area.appendChild(c);
     }
-    if (!document.getElementById('confetti-style')) {
-        const style = document.createElement('style');
-        style.id = 'confetti-style';
-        style.textContent = '@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}';
-        document.head.appendChild(style);
-    }
 }
-
 console.log('✅ Math Quiz Challenge loaded!');
