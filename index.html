@@ -40,17 +40,20 @@
             <nav class="tab-nav">
                 <button class="tab-btn active" data-tab="tab-home">
                     <span class="tab-icon">🏠</span>
-                    <span class="tab-label">หน้าหลัก</span>
+                    <span class="tab-label" data-i18n="tab-home">หน้าหลัก</span>
                 </button>
                 <button class="tab-btn" data-tab="tab-create">
                     <span class="tab-icon">🎯</span>
-                    <span class="tab-label">สร้างห้อง</span>
+                    <span class="tab-label" data-i18n="tab-create">สร้างห้อง</span>
                 </button>
                 <button class="tab-btn" data-tab="tab-learn">
                     <span class="tab-icon">📚</span>
-                    <span class="tab-label">เรียนรู้</span>
+                    <span class="tab-label" data-i18n="tab-learn">เรียนรู้</span>
                 </button>
-
+                <button class="tab-btn" data-tab="tab-settings">
+                    <span class="tab-icon">⚙️</span>
+                    <span class="tab-label" data-i18n="tab-settings">ตั้งค่า</span>
+                </button>
             </nav>
 
             <!-- Tab Content Area -->
@@ -59,17 +62,17 @@
                 <!-- TAB: HOME (Join Game) -->
                 <div id="tab-home" class="tab-panel active">
                     <div class="hero-area">
-                        <div class="hero-badge">🎮 พร้อมลุย!</div>
+                        <div class="hero-badge" data-i18n="hero-ready">🎮 พร้อมลุย!</div>
                         <h1 class="hero-title">Math Quiz<br>Challenge</h1>
-                        <p class="hero-sub">ลำดับเลขคณิต & อนุกรมเลขคณิต</p>
+                        <p class="hero-sub" data-i18n="hero-sub">ลำดับเลขคณิต & อนุกรมเลขคณิต</p>
                     </div>
                     <div class="glass-card join-card">
-                        <h3 class="card-title">เข้าร่วมเกม</h3>
+                        <h3 class="card-title" data-i18n="join-title">เข้าร่วมเกม</h3>
                         <input type="text" id="input-pin" class="input-field pin-input" placeholder="Game PIN"
                             maxlength="4" inputmode="numeric">
                         <input type="text" id="input-nickname" class="input-field" placeholder="Nickname ของคุณ">
                         <button id="btn-join" class="btn btn-accent btn-lg btn-full">
-                            <span>เข้าร่วม!</span>
+                            <span data-i18n="join-btn">เข้าร่วม!</span>
                             <span class="btn-arrow">→</span>
                         </button>
                     </div>
@@ -81,41 +84,43 @@
                         <div class="create-icon-wrap">
                             <div class="create-icon">🎯</div>
                         </div>
-                        <h2 class="section-heading">สร้างห้องเกม</h2>
-                        <p class="section-sub">สร้างห้องใหม่แล้วแชร์ PIN ให้เพื่อนเข้าร่วม</p>
+                        <h2 class="section-heading" data-i18n="create-title">สร้างห้องเกม</h2>
+                        <p class="section-sub" data-i18n="create-sub">สร้างห้องใหม่แล้วแชร์ PIN ให้เพื่อนเข้าร่วม</p>
                         <div class="glass-card create-card">
                             <div class="create-info">
                                 <div class="info-item">
                                     <span class="info-icon">❓</span>
-                                    <span>10 ข้อ ลำดับ & อนุกรมเลขคณิต</span>
+                                    <span data-i18n="create-q-count">10 ข้อ ลำดับ & อนุกรมเลขคณิต</span>
                                 </div>
                                 <div class="info-item">
                                     <span class="info-icon">⏱️</span>
-                                    <span>30 วินาทีต่อข้อ</span>
+                                    <span data-i18n="create-time">30 วินาทีต่อข้อ</span>
                                 </div>
                                 <div class="info-item">
                                     <span class="info-icon">🏆</span>
-                                    <span>คะแนนเต็ม 1,500 / ข้อ</span>
+                                    <span data-i18n="create-score">คะแนนเต็ม 1,500 / ข้อ</span>
                                 </div>
                                 <div class="info-item">
                                     <span class="info-icon">👥</span>
-                                    <span>ไม่จำกัดจำนวนผู้เล่น</span>
+                                    <span data-i18n="create-players">ไม่จำกัดจำนวนผู้เล่น</span>
                                 </div>
                             </div>
                             <div class="mode-select">
-                                <p class="mode-label">โหมดการเล่น:</p>
+                                <p class="mode-label" data-i18n="create-mode">โหมดการเล่น:</p>
                                 <div class="mode-toggle-group">
-                                    <button class="mode-toggle active" data-mode="normal">Classic</button>
-                                    <button class="mode-toggle" data-mode="elimination">Elimination (BR)</button>
+                                    <button class="mode-toggle active" data-mode="normal"
+                                        data-i18n="mode-classic">Classic</button>
+                                    <button class="mode-toggle" data-mode="elimination"
+                                        data-i18n="mode-elim">Elimination (BR)</button>
                                 </div>
-                                <p id="mode-desc" class="mode-label"
+                                <p id="mode-desc" class="mode-label" data-i18n="mode-desc"
                                     style="font-size: 0.75rem; margin-top: 8px; text-align: center;">
                                     Classic: 30s ต่อข้อ ตอบพร้อมกัน | Elimination: 30s ต่อข้อ สุ่มสลับกันตอบทีละคน
                                     (ใครผิดตกรอบ!)
                                 </p>
                             </div>
                             <button id="btn-create-room" class="btn btn-accent btn-lg btn-full">
-                                <span>🚀 สร้างห้องเลย!</span>
+                                <span data-i18n="create-btn">🚀 สร้างห้องเลย!</span>
                             </button>
                         </div>
                     </div>
@@ -129,8 +134,8 @@
                         <div class="create-icon-wrap">
                             <div class="create-icon">📚</div>
                         </div>
-                        <h2 class="section-heading">เรียนรู้สูตร</h2>
-                        <p class="section-sub">ทบทวนสูตรก่อนเล่นเกม</p>
+                        <h2 class="section-heading" data-i18n="learn-title">เรียนรู้สูตร</h2>
+                        <p class="section-sub" data-i18n="learn-sub">ทบทวนสูตรก่อนเล่นเกม</p>
 
                         <!-- Arithmetic Sequence -->
                         <div class="glass-card learn-card">
@@ -203,6 +208,30 @@
                 </div>
 
 
+                <!-- TAB: SETTINGS -->
+                <div id="tab-settings" class="tab-panel">
+                    <div class="settings-area">
+                        <div class="create-icon-wrap">
+                            <div class="create-icon">⚙️</div>
+                        </div>
+                        <h2 class="section-heading" data-i18n="settings-title">ตั้งค่า</h2>
+                        <p class="section-sub" data-i18n="settings-sub">จัดการแอปพลิเคชันของคุณ</p>
+
+                        <div class="glass-card settings-card">
+                            <div class="setting-item">
+                                <p class="setting-label" data-i18n="lang-select">เลือกภาษา (Language):</p>
+                                <div class="lang-toggle-group">
+                                    <button class="lang-btn active" data-lang="th">TH</button>
+                                    <button class="lang-btn" data-lang="en">EN</button>
+                                </div>
+                            </div>
+                            <div class="setting-item info-item-v">
+                                <p data-i18n="app-version">เวอร์ชันแอป: 1.2.5</p>
+                                <p data-i18n="dev-by">พัฒนาโดย: MathQuiz Team</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
             </div> <!-- End Tab Content Area -->
         </section>
@@ -222,12 +251,12 @@
             <div class="lobby-center">
                 <div class="waiting-badge">
                     <span class="dot-loader"></span>
-                    <span>Waiting for players...</span>
+                    <span data-i18n="lobby-waiting">Waiting for players...</span>
                 </div>
                 <div class="player-count-badge">
                     <span>👥</span>
                     <span id="lobby-player-count">0</span>
-                    <span>Players</span>
+                    <span data-i18n="lobby-players">Players</span>
                 </div>
                 <div id="lobby-players" class="players-flex"></div>
             </div>
@@ -248,14 +277,14 @@
                     <h2 id="q-text" class="q-text">Loading...</h2>
                 </div>
                 <div class="answers-counter">
-                    <span class="ac-label">Answers</span>
+                    <span class="ac-label" data-i18n="q-answers">Answers</span>
                     <span id="ac-count" class="ac-num">0</span>
                 </div>
             </div>
             <div id="formula-bar" class="formula-bar glass-card">
                 <span class="formula-icon">📐</span>
                 <div>
-                    <p class="formula-title">สูตรที่เกี่ยวข้อง</p>
+                    <p class="formula-title" data-i18n="q-formula">สูตรที่เกี่ยวข้อง</p>
                     <p id="formula-text" class="formula-content">aₙ = a₁ + (n-1)d</p>
                 </div>
             </div>
@@ -264,6 +293,7 @@
                 <span>MATH CHALLENGE</span>
                 <span id="q-footer-pin">PIN: ----</span>
             </div>
+            <div class="shoutout-container" id="question-shoutouts"></div>
         </section>
 
         <!-- ==================== HOST WAITING (KAHOOT LAYOUT) ==================== -->
@@ -297,11 +327,11 @@
                 <div class="host-side-badge">
                     <div class="host-answer-badge glass-card">
                         <span class="stat-num" id="host-answers">0</span>
-                        <span class="stat-label">Answers</span>
+                        <span class="stat-label" data-i18n="q-answers">Answers</span>
                     </div>
                     <div class="host-answer-badge glass-card" style="margin-top:8px;">
                         <span class="stat-num" id="host-total-players">0</span>
-                        <span class="stat-label">Players</span>
+                        <span class="stat-label" data-i18n="lobby-players">Players</span>
                     </div>
                 </div>
             </div>
@@ -318,10 +348,10 @@
 
         <!-- ==================== LEADERBOARD ==================== -->
         <section id="screen-leaderboard" class="screen">
-            <h2 class="section-title">🏆 Leaderboard</h2>
+            <h2 class="section-title" data-i18n="lb-title">🏆 Leaderboard</h2>
             <div id="lb-list" class="lb-list"></div>
             <div id="lb-host-controls" class="hidden">
-                <button id="btn-next-q" class="btn btn-accent btn-lg">NEXT ➜</button>
+                <button id="btn-next-q" class="btn btn-accent btn-lg" data-i18n="lb-next">NEXT ➜</button>
             </div>
         </section>
 
@@ -330,9 +360,10 @@
             <div class="gameover-content">
                 <div class="confetti-area" id="confetti-area"></div>
                 <div class="trophy-anim">🏆</div>
-                <h1 class="gameover-title">GAME OVER</h1>
+                <h1 class="gameover-title" data-i18n="go-title">GAME OVER</h1>
                 <div id="podium" class="podium"></div>
-                <button onclick="location.reload()" class="btn btn-accent btn-lg">🔄 Play Again</button>
+                <button onclick="location.reload()" class="btn btn-accent btn-lg" data-i18n="go-play-again">🔄 Play
+                    Again</button>
             </div>
     </div>
 
@@ -372,8 +403,9 @@
                 <div id="mini-timer" class="mini-timer">10</div>
             </div>
             <div class="watch-audience">
-                <p>คุณเป็นคนดู (ในคิว)</p>
+                <p data-i18n="watch-audience">คุณเป็นคนดู (ในคิว)</p>
             </div>
+            <div class="shoutout-container" id="watch-shoutouts"></div>
         </div>
     </section>
 

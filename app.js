@@ -20,67 +20,131 @@ const db = firebase.database();
 // --- Questions ---
 
 function generateBasicQ(level = 1) {
-    // Scaling Factors based on level (1-13)
-    const factor = Math.min(level, 13);
-    // Baseline difficulty improved: a1 starts up to 20, d starts up to 10
-    const a1Range = 20 + factor * 5;
-    const dRange = 10 + factor * 2;
+    const factor = Math.min(level, 15);
 
-    const a1 = Math.floor(Math.random() * a1Range) + 5; // Min 5
-    const d = Math.floor(Math.random() * dRange) + 2;  // Min 2
+    // Cycle Types: 1=Arith Seq, 2=Arith Series, 0=Geo Seq
+    const qType = level % 3;
 
-    // Alternate Type: Odd levels = Sequence, Even levels = Series
-    const isSeries = (level % 2 === 0);
+    if (qType === 1) {
+        // --- Arithmetic Sequence ---
+        const a1 = Math.floor(Math.random() * (20 + factor * 5)) + 2;
+        const d = Math.floor(Math.random() * (10 + factor * 2)) + 2;
 
-    if (!isSeries) {
-        // Sequence Mode (Find d or find specific term)
-        const findD = (Math.random() < 0.3 && level < 10); // Find d is easier, less frequent at high levels
+        // Difficulty scaling for n: level 1-4 (n=1-4), then increases
+        const nLimit = level <= 4 ? 4 : Math.min(6 + Math.floor(factor / 2), 15);
+        const n = Math.floor(Math.random() * nLimit) + 1;
+        const ans = a1 + (n - 1) * d;
 
-        if (findD) {
-            const seq = [a1, a1 + d, a1 + d * 2, a1 + d * 3];
-            const opts = [d, d + 1, Math.abs(d - 1), d + 5].sort(() => Math.random() - 0.5);
-            return {
-                q: `ลำดับเลขคณิต ${seq.join(', ')}, ... มีค่า d เท่าใด?`,
-                opts: opts.map(String), ans: opts.indexOf(d), formula: "d = a₂ - a₁"
-            };
-        } else {
-            // Find specific term n
-            // Base: 1-2, Hard: up to 6
-            const nRange = level <= 4 ? 2 : 6;
-            const n = Math.floor(Math.random() * nRange) + 1;
-            const ans = a1 + (n - 1) * d;
+        const seq = [a1, a1 + d, a1 + d * 2, a1 + d * 3];
+        const seqText = n <= 4 ?
+            seq.map((v, i) => (i === n - 1 ? '?' : v)).join(', ') :
+            seq.join(', ');
 
-            let seqText;
-            if (n <= 3) {
-                const arr = [a1, a1 + d, a1 + d * 2];
-                arr[n - 1] = '?';
-                seqText = arr.join(', ');
-            } else {
-                seqText = `${a1}, ${a1 + d}, ${a1 + d * 2}`;
+        // Smart Options: Avoid values already in the visible sequence
+        const used = new Set([a1, a1 + d, a1 + d * 2, a1 + d * 3]);
+        let opts = [ans];
+        const adj = [d, -d, 1, -1, 10, 5];
+        for (let a of adj) {
+            let candidate = ans + a;
+            if (candidate > 0 && candidate !== ans && !used.has(candidate)) {
+                opts.push(candidate);
+                if (opts.length >= 4) break;
             }
-
-            const opts = [ans, ans + d, ans - d, ans + 1].sort(() => Math.random() - 0.5);
-            return {
-                q: `จงหาพจน์ที่ ${n} ของลำดับเลขคณิต: ${seqText}, ...`,
-                opts: opts.map(String), ans: opts.indexOf(ans), formula: "aₙ = a₁ + (n-1)d"
-            };
         }
-    } else {
-        // Series Mode (Sum Sn)
-        // Level increases n for sum
-        const n = level <= 6 ? 3 : 5;
+        while (opts.length < 4) {
+            let r = ans + Math.floor(Math.random() * 20) - 10;
+            if (r > 0 && !opts.includes(r) && !used.has(r)) opts.push(r);
+        }
+        opts.sort(() => Math.random() - 0.5);
+
+        return {
+            q: `จงหาพจน์ที่ ${n} ของลำดับเลขคณิต: ${seqText}, ...`,
+            opts: opts.map(String), ans: opts.indexOf(ans), formula: "aₙ = a₁ + (n-1)d"
+        };
+
+    } else if (qType === 2) {
+        // --- Arithmetic Series ---
+        const a1 = Math.floor(Math.random() * 15) + 2;
+        const d = Math.floor(Math.random() * 8) + 2;
+        const n = level <= 6 ? 3 : (level <= 10 ? 4 : 5);
         const an = a1 + (n - 1) * d;
         const ans = (n / 2) * (a1 + an);
 
-        const opts = [ans, ans + d, ans - d, ans + 10].sort(() => Math.random() - 0.5);
+        const opts = [ans, ans + d, ans + 10, Math.abs(ans - d)].sort(() => Math.random() - 0.5);
         return {
             q: `ผลบวก ${n} พจน์แรกของอนุกรม ${a1} + ${a1 + d} + ${a1 + d * 2} + ... คือเท่าใด?`,
             opts: opts.map(String), ans: opts.indexOf(ans), formula: "Sₙ = n/2 (a₁ + aₙ)"
         };
+
+    } else {
+        // --- Geometric Sequence ---
+        const a1 = Math.floor(Math.random() * 5) + 2; // Small a1
+        const r = Math.floor(Math.random() * 2) + 2; // r=2 or 3 (sometimes 4 at high levels)
+        const finalR = level > 10 ? r + 1 : r;
+
+        const nLimit = level <= 5 ? 3 : 5;
+        const n = Math.floor(Math.random() * nLimit) + 1;
+        const ans = a1 * Math.pow(finalR, n - 1);
+
+        const seq = [a1, a1 * finalR, a1 * Math.pow(finalR, 2)];
+        const seqText = n <= 3 ?
+            seq.map((v, i) => (i === n - 1 ? '?' : v)).join(', ') :
+            seq.join(', ');
+
+        const opts = [ans, ans * finalR, Math.floor(ans / finalR), ans + finalR].sort(() => Math.random() - 0.5);
+        return {
+            q: `จงหาพจน์ที่ ${n} ของลำดับเรขาคณิต: ${seqText}, ...`,
+            opts: opts.map(String), ans: opts.indexOf(ans), formula: "aₙ = a₁ · rⁿ⁻¹"
+        };
     }
 }
 
-const SHAPES = ["▲", "◆", "●", "■"];
+const SHAPES = ['▲', '◆', '●', '■'];
+
+const I18N = {
+    th: {
+        "tab-home": "หน้าหลัก", "tab-create": "สร้างห้อง", "tab-learn": "เรียนรู้", "tab-settings": "ตั้งค่า",
+        "settings-title": "ตั้งค่า", "settings-sub": "จัดการแอปพลิเคชันของคุณ", "lang-select": "เลือกภาษา (Language):",
+        "app-version": "เวอร์ชันแอป: 1.2.5", "dev-by": "พัฒนาโดย: MathQuiz Team",
+        "hero-ready": "🎮 พร้อมลุย!", "hero-sub": "ลำดับเลขคณิต & อนุกรมเลขคณิต",
+        "join-title": "เข้าร่วมเกม", "join-btn": "เข้าร่วม!", "nickname-placeholder": "Nickname ของคุณ",
+        "create-title": "สร้างห้องเกม", "create-sub": "สร้างห้องใหม่แล้วแชร์ PIN ให้เพื่อนเข้าร่วม",
+        "create-q-count": "10 ข้อ ลำดับ & อนุกรมเลขคณิต", "create-time": "30 วินาทีต่อข้อ",
+        "create-score": "คะแนนเต็ม 1,500 / ข้อ", "create-players": "ไม่จำกัดจำนวนผู้เล่น",
+        "create-mode": "โหมดการเล่น:", "create-btn": "🚀 สร้างห้องเลย!",
+        "mode-classic": "Classic", "mode-elim": "Elimination (BR)",
+        "mode-desc": "Classic: 30s ต่อข้อ ตอบพร้อมกัน | Elimination: 30s ต่อข้อ สุ่มสลับกันตอบทีละคน (ใครผิดตกรอบ!)",
+        "learn-title": "เรียนรู้สูตร", "learn-sub": "ทบทวนสูตรก่อนเล่นเกม",
+        "shoutout-placeholder": "ส่งแรงเชียร์...", "shoutout-btn": "ส่ง!",
+        "lobby-waiting": "กำลังรอผู้เล่นคนอื่น...", "lobby-players": "ผู้ร่วมเล่น",
+        "q-answers": "คำตอบ", "q-formula": "สูตรที่เกี่ยวข้อง",
+        "lb-title": "🏆 ตารางคะแนน", "lb-next": "ข้อถัดไป ➜",
+        "go-title": "จบเกม", "go-play-again": "🔄 เล่นอีกครั้ง",
+        "watch-audience": "คุณเป็นคนดู (ในคิว)"
+    },
+    en: {
+        "tab-home": "Home", "tab-create": "Create", "tab-learn": "Learn", "tab-settings": "Settings",
+        "settings-title": "Settings", "settings-sub": "Manage your application", "lang-select": "Select Language:",
+        "app-version": "Version: 1.2.5", "dev-by": "By: MathQuiz Team",
+        "hero-ready": "🎮 Let's Go!", "hero-sub": "Arithmetic & Geometric Sequences",
+        "join-title": "Join Game", "join-btn": "Join!", "nickname-placeholder": "Your Nickname",
+        "create-title": "Create Room", "create-sub": "Create a room and share PIN",
+        "create-q-count": "10 Questions - Sequences", "create-time": "30s per question",
+        "create-score": "Max 1,500 pts / question", "create-players": "Unlimited players",
+        "create-mode": "Game Mode:", "create-btn": "🚀 Create Room!",
+        "mode-classic": "Classic", "mode-elim": "Elimination (BR)",
+        "mode-desc": "Classic: 30s all together | Elimination: 30s random turns (wrong = out!)",
+        "learn-title": "Learn Formulas", "learn-sub": "Review before you play",
+        "shoutout-placeholder": "Send a shoutout...", "shoutout-btn": "Send!",
+        "lobby-waiting": "Waiting for players...", "lobby-players": "Players",
+        "q-answers": "Answers", "q-formula": "Relevant Formula",
+        "lb-title": "🏆 Leaderboard", "lb-next": "NEXT ➜",
+        "go-title": "GAME OVER", "go-play-again": "🔄 Play Again",
+        "watch-audience": "You are a spectator (in queue)"
+    }
+};
+
+let currentLang = localStorage.getItem('mathQuizLang') || 'th';
 const COLORS = ["opt-red", "opt-blue", "opt-yellow", "opt-green"];
 
 // --- State ---
@@ -95,15 +159,58 @@ let roomQuestions = [];
 // ========================================================
 // TAB NAVIGATION
 // ========================================================
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById(btn.dataset.tab).classList.add('active');
+window.addEventListener('load', () => {
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        });
     });
+
+    // Language switching
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentLang = btn.getAttribute('data-lang');
+            localStorage.setItem('mathQuizLang', currentLang);
+            updateLangUI();
+            translateApp();
+        });
+    });
+
+    translateApp();
+    updateLangUI();
 });
 
+function updateLangUI() {
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === currentLang);
+    });
+}
+
+function translateApp() {
+    const dict = I18N[currentLang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key]) {
+            // Handle specific element types if needed, but mostly textContent
+            if (el.tagName === 'INPUT') {
+                el.placeholder = dict[key];
+            } else {
+                // If it contains more than just text, we might need to be careful.
+                // But for labels, textContent is fine.
+                el.textContent = dict[key];
+            }
+        }
+    });
+
+    // Special handling for placeholders that don't have data-i18n yet or need dynamic update
+    document.getElementById('input-nickname').placeholder = dict['nickname-placeholder'];
+    document.getElementById('shoutout-msg').placeholder = dict['shoutout-placeholder'];
+}
 // ========================================================
 // PARTICLES (SNOW)
 // ========================================================
@@ -145,7 +252,8 @@ function showScreen(id) {
     // Toggle Spectator UI
     const spectatorUI = document.getElementById('spectator-ui');
     if (spectatorUI) {
-        const isSpectatorScreen = ['watch', 'result', 'leaderboard', 'gameover'].includes(id);
+        // Show for spectators OR for players on question/stage screens
+        const isSpectatorScreen = ['question', 'watch', 'result', 'leaderboard', 'gameover', 'stage'].includes(id);
         if (role === 'player' && isSpectatorScreen) {
             spectatorUI.classList.remove('hidden');
         } else {
@@ -305,6 +413,11 @@ function renderHostStage(data, q, player) {
 function renderPlayerStage(data, q) {
     document.getElementById('q-text').textContent = q.q;
     document.getElementById('q-progress').textContent = 'ตาของคุณ! (30 วินาที)';
+
+    // Hide answers count in Elimination mode (it's personal turn)
+    const ac = document.querySelector('.answers-counter');
+    if (ac) ac.style.visibility = 'hidden';
+
     const grid = document.getElementById('options-grid');
     grid.innerHTML = '';
     q.opts.forEach((opt, i) => {
@@ -349,7 +462,9 @@ async function sendShoutout() {
 function renderShoutout(text) {
     const containers = [
         document.getElementById('stage-shoutouts'),
-        document.getElementById('host-shoutouts')
+        document.getElementById('host-shoutouts'),
+        document.getElementById('question-shoutouts'),
+        document.getElementById('watch-shoutouts')
     ].filter(el => el !== null);
 
     if (containers.length === 0) return;
@@ -488,6 +603,11 @@ function showPlayerQuestion(data) {
     document.getElementById('q-text').textContent = q.q;
     document.getElementById('q-progress').textContent = 'ข้อ ' + (data.qIndex + 1) + '/' + data.questions.length;
     document.getElementById('formula-text').textContent = q.formula;
+
+    // Show answers count in Classic mode
+    const ac = document.querySelector('.answers-counter');
+    if (ac) ac.style.visibility = 'visible';
+
     const grid = document.getElementById('options-grid');
     grid.innerHTML = '';
     q.opts.forEach((opt, i) => {

@@ -1763,3 +1763,68 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* ================== SETTINGS ================== */
+.settings-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.settings-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.setting-label {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    text-align: left;
+}
+
+.lang-toggle-group {
+    display: flex;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 5px;
+    border-radius: 12px;
+}
+
+.lang-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    transition: all 0.3s;
+}
+
+.lang-btn.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.info-item-v {
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+}
